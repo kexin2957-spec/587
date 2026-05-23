@@ -1,0 +1,355 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { AdminStatusBadge } from "@/components/admin/admin-status-badge";
+import { useTranslation } from "@/components/i18n/language-provider";
+import { demoAgents } from "@/lib/marketplace/demo-data";
+
+type PurchaseRequestRecord = {
+  admin_note?: string | null;
+  agent_id: string;
+  agent_slug: string;
+  budget_range: string | null;
+  company: string | null;
+  created_at: string;
+  email: string;
+  id: string;
+  language: string | null;
+  message: string | null;
+  name: string;
+  preferred_contact_method: string | null;
+  request_type: string;
+  required_integrations: string | null;
+  setup_needs: string | null;
+  source_page: string | null;
+  status: string;
+  timeline: string | null;
+  website_url: string | null;
+  what_should_be_customized: string | null;
+};
+
+type PurchaseRequestsResponse = {
+  data?: PurchaseRequestRecord[];
+  error?: string;
+  mode?: "mock" | "supabase";
+  ok?: boolean;
+};
+
+const requestStatuses = ["new", "contacted", "in_progress", "closed", "rejected"];
+
+export function PurchaseRequestsTable() {
+  const { language, t } = useTranslation();
+  const [records, setRecords] = useState<PurchaseRequestRecord[]>([]);
+  const [mode, setMode] = useState<"mock" | "supabase" | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [notes, setNotes] = useState<Record<string, string>>({});
+
+  async function fetchRecords() {
+    const response = await fetch("/api/purchase-requests", {
+      cache: "no-store",
+    });
+    const result = (await response.json()) as PurchaseRequestsResponse;
+
+    if (!response.ok) {
+      throw new Error(result.error || "Unable to load purchase requests.");
+    }
+
+    return result;
+  }
+
+  async function loadRecords() {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const result = await fetchRecords();
+      setRecords(result.data ?? []);
+      setMode(result.mode ?? null);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load purchase requests.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function updateRequest(record: PurchaseRequestRecord, status?: string) {
+    setActionError("");
+
+    const response = await fetch("/api/purchase-requests", {
+      body: JSON.stringify({
+        admin_note: notes[record.id] ?? record.admin_note ?? "",
+        id: record.id,
+        status,
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "PATCH",
+    });
+    const result = (await response.json()) as {
+      data?: PurchaseRequestRecord;
+      error?: string;
+    };
+
+    if (!response.ok || !result.data) {
+      setActionError(result.error || t("admin.actionFailed"));
+      return;
+    }
+
+    setRecords((current) =>
+      current.map((item) => (item.id === record.id ? result.data as PurchaseRequestRecord : item)),
+    );
+  }
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadInitialRecords() {
+      try {
+        const result = await fetchRecords();
+
+        if (!isActive) {
+          return;
+        }
+
+        setRecords(result.data ?? []);
+        setMode(result.mode ?? null);
+      } catch (loadError) {
+        if (!isActive) {
+          return;
+        }
+
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Unable to load purchase requests.",
+        );
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadInitialRecords();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    [language],
+  );
+
+  if (isLoading) {
+    return <AdminState>{t("admin.loadingPurchaseRequests")}</AdminState>;
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-5 shadow-sm">
+        <p className="text-sm font-medium text-red-700">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="premium-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-slate-950">
+            {records.length} {t("admin.purchaseRequests")}
+          </p>
+          {mode ? (
+            <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
+              {t("admin.dataSource")}: {mode}
+            </p>
+          ) : null}
+        </div>
+        <button
+          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-sm hover:bg-slate-50 sm:w-auto"
+          onClick={() => void loadRecords()}
+          type="button"
+        >
+          {t("admin.refresh")}
+        </button>
+      </div>
+
+      {records.length === 0 ? (
+        <AdminState>{t("admin.emptyPurchaseRequests")}</AdminState>
+      ) : (
+        <div className="grid gap-4">
+          {actionError ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+              {actionError}
+            </div>
+          ) : null}
+          {records.map((record) => {
+            const agent = demoAgents.find((item) => item.slug === record.agent_slug);
+            const agentTitle = agent
+              ? language === "zh"
+                ? agent.titleZh
+                : agent.titleEn
+              : record.agent_slug;
+
+            return (
+              <article
+                className="premium-card p-5"
+                data-testid="admin-purchase-request-card"
+                key={record.id}
+              >
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                      {record.request_type}
+                    </p>
+                    <h2 className="mt-1 text-lg font-semibold text-slate-950">
+                      {agentTitle}
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      {record.name} / {record.email}
+                    </p>
+                  </div>
+                  <AdminStatusBadge status={record.status} />
+                </div>
+
+                <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                  <Field label={t("forms.company")}>
+                    {record.company || t("common.notProvided")}
+                  </Field>
+                  <Field label={t("admin.tableBudget")}>
+                    {record.budget_range || t("common.notProvided")}
+                  </Field>
+                  <Field label={t("admin.tableTimeline")}>
+                    {record.timeline || t("common.notProvided")}
+                  </Field>
+                  <Field label={t("admin.tableSubmitted")}>
+                    {dateFormatter.format(new Date(record.created_at))}
+                  </Field>
+                </dl>
+
+                <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+                    {t("admin.viewDetails")}
+                  </summary>
+                  <dl className="mt-3 grid gap-4 text-sm sm:grid-cols-2">
+                    <Field label={t("forms.preferredContactMethod")}>
+                      {record.preferred_contact_method || t("common.notProvided")}
+                    </Field>
+                    <Field label={t("forms.websiteUrl")}>
+                      {record.website_url || t("common.notProvided")}
+                    </Field>
+                    <Field label={t("forms.setupNeeds")}>
+                      {record.setup_needs || t("common.notProvided")}
+                    </Field>
+                    <Field label={t("forms.whatShouldBeCustomized")}>
+                      {record.what_should_be_customized || t("common.notProvided")}
+                    </Field>
+                    <Field label={t("forms.requiredIntegrations")}>
+                      {record.required_integrations || t("common.notProvided")}
+                    </Field>
+                    <Field label={t("forms.message")}>
+                      {record.message || t("common.notProvided")}
+                    </Field>
+                    <Field label={t("admin.sourcePage")}>
+                      {record.source_page || t("common.notProvided")}
+                    </Field>
+                    <Field label={t("admin.agentSlug")}>
+                      {record.agent_slug || t("common.notProvided")}
+                    </Field>
+                    <Field label={t("forms.language")}>
+                      {record.language || t("common.notProvided")}
+                    </Field>
+                    <Field label={t("admin.internalNote")}>
+                      {record.admin_note || t("common.notProvided")}
+                    </Field>
+                  </dl>
+                </details>
+
+                <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
+                  <textarea
+                    className="polished-input min-h-20 px-3 py-2 text-sm text-slate-950"
+                    onChange={(event) =>
+                      setNotes((current) => ({
+                        ...current,
+                        [record.id]: event.target.value,
+                      }))
+                    }
+                    placeholder={t("admin.internalNotePlaceholder")}
+                    value={notes[record.id] ?? record.admin_note ?? ""}
+                  />
+                  <div className="flex flex-wrap items-start gap-2">
+                    {requestStatuses.map((status) => (
+                      <ActionButton
+                        key={status}
+                        label={status}
+                        onClick={() => void updateRequest(record, status)}
+                      />
+                    ))}
+                    <ActionButton
+                      label={t("admin.saveInternalNote")}
+                      onClick={() => void updateRequest(record)}
+                    />
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActionButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-slate-950/20 hover:bg-slate-800"
+      onClick={onClick}
+      type="button"
+    >
+      {label}
+    </button>
+  );
+}
+
+function AdminState({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="premium-card p-5">
+      <p className="text-sm text-slate-600">{children}</p>
+    </div>
+  );
+}
+
+function Field({
+  children,
+  label,
+}: {
+  children: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </dt>
+      <dd className="mt-1 break-words text-slate-700">{children}</dd>
+    </div>
+  );
+}

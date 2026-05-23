@@ -1,0 +1,9 @@
+.next
+node_modules
+.env
+.env.*
+!.env.example
+.tools
+*.log
+*.err.log
+tsconfig.tsbuildinfo
