@@ -32,20 +32,25 @@ export function SiteHeader() {
         <div className="flex h-16 items-center justify-between gap-4">
           <Link
             href="/"
-            className="group inline-flex min-w-0 items-center gap-3 rounded-md"
+            className="group inline-flex min-w-0 items-center rounded-md"
             onClick={() => setMenuOpen(false)}
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-sm font-semibold text-white shadow-sm shadow-slate-950/20">
-              AI
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold tracking-tight text-slate-950 sm:text-base">
-                {t("nav.brand")}
-              </span>
-              <span className="hidden text-xs font-medium text-slate-500 sm:block">
-                B2B Agent Store
-              </span>
-            </span>
+            <Image
+              alt={t("nav.brand")}
+              className="h-10 w-10 rounded-xl object-contain sm:hidden"
+              height={80}
+              priority
+              src="/brand/gongzhi-ai-logo-mark.png"
+              width={80}
+            />
+            <Image
+              alt={t("nav.brand")}
+              className="hidden h-11 w-auto object-contain sm:block"
+              height={86}
+              priority
+              src="/brand/gongzhi-ai-logo-wide.png"
+              width={310}
+            />
           </Link>
 
           <nav className="hidden items-center gap-1 rounded-full border border-slate-200/80 bg-slate-50/80 p-1 text-sm text-slate-700 lg:flex">

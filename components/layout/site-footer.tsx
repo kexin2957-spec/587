@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/i18n/language-provider";
@@ -36,10 +37,13 @@ export function SiteFooter() {
       <div className="app-container grid gap-8 py-10 text-sm text-slate-600 md:grid-cols-[1.4fr_1fr_1.2fr]">
         <div className="max-w-md">
           <Link href="/" className="inline-flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-sm font-semibold text-white">
-              AI
-            </span>
-            <span className="font-semibold text-slate-950">{t("nav.brand")}</span>
+            <Image
+              alt={t("nav.brand")}
+              className="h-12 w-auto object-contain"
+              height={86}
+              src="/brand/gongzhi-ai-logo-wide.png"
+              width={310}
+            />
           </Link>
           <p className="mt-4 leading-6">{t("footer.tagline")}</p>
           <p className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-medium leading-5 text-blue-900">
