@@ -8,11 +8,13 @@ import {
 } from "@/lib/server/marketplace-admin-store";
 import {
   AGENT_STATUSES,
+  PRICING_TYPES,
   type AgentStatus,
   type DeliveryType,
   type PricingType,
 } from "@/lib/marketplace/constants";
 import { requireAdminForConfiguredSupabase } from "@/lib/auth/server";
+import { writeRequestAuditLog } from "@/lib/server/audit-log";
 
 type AgentPatchPayload = {
   admin_note?: string;
@@ -20,8 +22,15 @@ type AgentPatchPayload = {
   id?: string;
   is_featured?: boolean;
   is_verified?: boolean;
+  price_cny?: number | null;
+  price_usd?: number | null;
+  pricing_type?: PricingType;
+  short_description_en?: string;
+  short_description_zh?: string;
   slug?: string;
   status?: AgentStatus;
+  title_en?: string;
+  title_zh?: string;
 };
 
 type SupabaseAgentRecord = {
@@ -94,9 +103,17 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Invalid status." }, { status: 400 });
   }
 
+  if (payload.pricing_type && !PRICING_TYPES.includes(payload.pricing_type)) {
+    return NextResponse.json({ error: "Invalid pricing type." }, { status: 400 });
+  }
+
   const supabaseResponse = await patchSupabaseAdminAgent(targetKey, payload);
 
   if (supabaseResponse) {
+    if (supabaseResponse.status < 400) {
+      await writeAgentAuditLog(request, payload, targetKey);
+    }
+
     return supabaseResponse;
   }
 
@@ -122,11 +139,15 @@ export async function PATCH(request: Request) {
       sellerAgent.review_feedback = payload.feedback.trim() || null;
     }
 
+    applyAgentContentUpdates(sellerAgent, payload);
+
     if (typeof payload.admin_note === "string") {
       sellerAgent.admin_note = payload.admin_note.trim() || null;
     }
 
     sellerAgent.updated_at = now;
+
+    await writeAgentAuditLog(request, payload, sellerAgent.id);
 
     return NextResponse.json({
       data: sellerAgent,
@@ -169,12 +190,33 @@ export async function PATCH(request: Request) {
     nextOverride.admin_note = payload.admin_note.trim() || null;
   }
 
+  Object.assign(nextOverride, extractAgentContentUpdates(payload));
+
   overrideStore[platformAgent.slug] = nextOverride;
+
+  await writeAgentAuditLog(request, payload, platformAgent.slug);
 
   return NextResponse.json({
     data: getAdminAgentRecords().find((agent) => agent.slug === platformAgent.slug),
     mode: "mock",
     ok: true,
+  });
+}
+
+async function writeAgentAuditLog(
+  request: Request,
+  payload: AgentPatchPayload,
+  resourceId: string,
+) {
+  await writeRequestAuditLog(request, {
+    action: "agent.admin_update",
+    metadata: {
+      featured: payload.is_featured ?? null,
+      status: payload.status ?? null,
+      verified: payload.is_verified ?? null,
+    },
+    resourceId,
+    resourceType: "marketplace_agent",
   });
 }
 
@@ -253,8 +295,15 @@ async function patchSupabaseAdminAgent(
     admin_note?: string | null;
     is_featured?: boolean;
     is_verified?: boolean;
+    price_cny?: number | null;
+    price_usd?: number | null;
+    pricing_type?: PricingType;
     review_feedback?: string | null;
+    short_description_en?: string;
+    short_description_zh?: string;
     status?: AgentStatus;
+    title_en?: string;
+    title_zh?: string;
   } = {};
 
   if (payload.status) {
@@ -276,6 +325,8 @@ async function patchSupabaseAdminAgent(
   if (typeof payload.admin_note === "string") {
     updates.admin_note = payload.admin_note.trim() || null;
   }
+
+  Object.assign(updates, extractAgentContentUpdates(payload));
 
   const { data, error } = await supabase
     .from("marketplace_agents")
@@ -337,6 +388,55 @@ function toNullableNumber(value: number | string | null) {
   const parsed = Number(value);
 
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function extractAgentContentUpdates(payload: AgentPatchPayload) {
+  const updates: {
+    price_cny?: number | null;
+    price_usd?: number | null;
+    pricing_type?: PricingType;
+    short_description_en?: string;
+    short_description_zh?: string;
+    title_en?: string;
+    title_zh?: string;
+  } = {};
+
+  if (typeof payload.title_en === "string") {
+    updates.title_en = payload.title_en.trim();
+  }
+
+  if (typeof payload.title_zh === "string") {
+    updates.title_zh = payload.title_zh.trim();
+  }
+
+  if (typeof payload.short_description_en === "string") {
+    updates.short_description_en = payload.short_description_en.trim();
+  }
+
+  if (typeof payload.short_description_zh === "string") {
+    updates.short_description_zh = payload.short_description_zh.trim();
+  }
+
+  if (payload.pricing_type) {
+    updates.pricing_type = payload.pricing_type;
+  }
+
+  if (typeof payload.price_usd === "number" || payload.price_usd === null) {
+    updates.price_usd = payload.price_usd;
+  }
+
+  if (typeof payload.price_cny === "number" || payload.price_cny === null) {
+    updates.price_cny = payload.price_cny;
+  }
+
+  return updates;
+}
+
+function applyAgentContentUpdates(
+  agent: AdminAgentRecord,
+  payload: AgentPatchPayload,
+) {
+  Object.assign(agent, extractAgentContentUpdates(payload));
 }
 
 function isUuid(value: string) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadPublicMarketplaceAgents } from "@/lib/server/public-agent-service";
+import { toPublicAgentCardDto } from "@/lib/server/public-agent-dtos";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    data: result.agents,
+    data: result.agents.map(toPublicAgentCardDto),
     mode: result.mode,
     ok: true,
   });

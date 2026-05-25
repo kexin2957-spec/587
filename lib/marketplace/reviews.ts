@@ -49,6 +49,30 @@ const sharedReviews: AgentReview[] = [
 
 const reviewsBySlug: Record<string, AgentReview[]> = {
   "website-customer-support-agent": sharedReviews,
+  "ecommerce-product-support-agent": [
+    {
+      commentEn:
+        "The product FAQ and return-policy flow was practical. The order-tracking boundary was clear, which helped us avoid promising live lookup before integration.",
+      commentZh:
+        "商品 FAQ 和退换货政策流程很实用。订单查询边界说明清楚，避免了未集成前承诺实时查询。",
+      createdAt: "2026-05-24",
+      id: "review-ecommerce-founder",
+      rating: 5,
+      reviewerName: "Store Founder",
+      status: "approved",
+    },
+    {
+      commentEn:
+        "Useful for shoppers who are comparing products. We liked that it collects contact details for bulk orders and discount questions.",
+      commentZh:
+        "对正在比较商品的买家很有帮助。批量采购和折扣问题会收集联系方式，这点很适合销售跟进。",
+      createdAt: "2026-05-22",
+      id: "review-ecommerce-ops",
+      rating: 5,
+      reviewerName: "E-commerce Ops",
+      status: "approved",
+    },
+  ],
   "internal-knowledge-base-agent": [
     sharedReviews[2],
     {
@@ -81,9 +105,9 @@ const reviewsBySlug: Record<string, AgentReview[]> = {
     sharedReviews[1],
     {
       commentEn:
-        "Pending review placeholder. Public display should wait for admin approval.",
+        "Pending review sample. Public display should wait for admin approval.",
       commentZh:
-        "待审核评价占位。公开展示前应等待管理员审核。",
+        "待审核评价样例。公开展示前应等待管理员审核。",
       createdAt: "2026-05-20",
       id: "review-pending-restaurant",
       rating: 4,

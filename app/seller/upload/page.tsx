@@ -37,7 +37,7 @@ export default function SellerUploadPage() {
             </Link>
             <Link
               className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-950 shadow-sm hover:border-slate-400 hover:bg-slate-50"
-              href="/admin/agents"
+              href="/seller/agents"
             >
               {t("seller.viewReviewQueue")}
             </Link>

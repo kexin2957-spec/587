@@ -3,16 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useLanguage } from "@/components/i18n/language-provider";
 import type { AppLanguage } from "@/lib/i18n/language";
 
 const primaryLinks = [
   { href: "/marketplace", labelKey: "nav.marketplace" },
-  { href: "/#categories", labelKey: "nav.categories" },
-  { href: "/custom-service", labelKey: "nav.customService" },
-  { href: "/become-a-seller", labelKey: "nav.becomeSeller" },
+  { href: "/case-studies", labelEn: "Demo Cases", labelZh: "Demo 案例" },
+  { href: "/about", labelEn: "Why Us", labelZh: "为什么选我们" },
   { href: "/pricing", labelKey: "nav.pricing" },
 ];
 
@@ -22,6 +21,10 @@ export function SiteHeader() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const role = profile?.role ?? "buyer";
+
+  if (pathname.startsWith("/embed/")) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/86 shadow-sm shadow-slate-950/[0.03] backdrop-blur-xl">
@@ -53,7 +56,7 @@ export function SiteHeader() {
                 isActive={isActivePath(pathname, link.href)}
                 onClick={() => setMenuOpen(false)}
               >
-                {t(link.labelKey)}
+                {getNavLabel(link, language, t)}
               </PrimaryNavLink>
             ))}
           </nav>
@@ -103,7 +106,7 @@ export function SiteHeader() {
                   isActive={isActivePath(pathname, link.href)}
                   onClick={() => setMenuOpen(false)}
                 >
-                  {t(link.labelKey)}
+                  {getNavLabel(link, language, t)}
                 </PrimaryNavLink>
               ))}
             </nav>
@@ -164,7 +167,7 @@ function AuthActions({
         <HeaderLink href="/admin">{t("nav.admin")}</HeaderLink>
       ) : null}
       {role === "seller" ? (
-        <HeaderLink href="/seller/upload">{t("nav.sellerDashboard")}</HeaderLink>
+        <HeaderLink href="/seller">{t("nav.sellerDashboard")}</HeaderLink>
       ) : null}
       <HeaderLink href="/sign-out">{t("auth.signOut")}</HeaderLink>
     </div>
@@ -231,6 +234,8 @@ export function LanguageSwitcher({
   englishLabel: string;
   chineseLabel: string;
 }) {
+  const pathname = usePathname();
+
   return (
     <div
       aria-label={label}
@@ -239,12 +244,14 @@ export function LanguageSwitcher({
       <Image src="/globe.svg" alt="" width={16} height={16} />
       <LanguageButton
         active={language === "en"}
+        currentPath={pathname}
         language="en"
         label={englishLabel}
         setLanguage={setLanguage}
       />
       <LanguageButton
         active={language === "zh"}
+        currentPath={pathname}
         language="zh"
         label={chineseLabel}
         setLanguage={setLanguage}
@@ -255,20 +262,28 @@ export function LanguageSwitcher({
 
 function LanguageButton({
   active,
+  currentPath,
   language,
   label,
   setLanguage,
 }: {
   active: boolean;
+  currentPath: string;
   language: AppLanguage;
   label: string;
   setLanguage: (language: AppLanguage) => void;
 }) {
+  function selectLanguage(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    setLanguage(language);
+  }
+
   return (
-    <button
-      type="button"
+    <a
       aria-pressed={active}
-      onClick={() => setLanguage(language)}
+      href={`/api/language?lang=${language}&next=${encodeURIComponent(currentPath)}`}
+      onClick={selectLanguage}
+      role="button"
       className={
         active
           ? "rounded-lg bg-white px-3 py-1.5 font-semibold text-slate-950 shadow-sm"
@@ -276,8 +291,20 @@ function LanguageButton({
       }
     >
       {label}
-    </button>
+    </a>
   );
+}
+
+function getNavLabel(
+  link: (typeof primaryLinks)[number],
+  language: AppLanguage,
+  t: (key: string) => string,
+) {
+  if ("labelKey" in link && link.labelKey) {
+    return t(link.labelKey);
+  }
+
+  return language === "zh" ? link.labelZh : link.labelEn;
 }
 
 function isActivePath(pathname: string, href: string) {

@@ -1,25 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { LanguageSwitcher } from "@/components/layout/site-header";
 
 const footerLinks = [
   { href: "/marketplace", labelKey: "nav.marketplace" },
-  { href: "/custom-service", labelKey: "nav.customService" },
+  { href: "/case-studies", labelEn: "Demo Cases", labelZh: "Demo 案例" },
+  { href: "/about", labelEn: "Why Us", labelZh: "为什么选我们" },
   { href: "/become-a-seller", labelKey: "nav.becomeSeller" },
+  { href: "/custom-service#custom-request-form", labelKey: "footer.contact" },
+  { href: "/admin", labelKey: "nav.admin" },
 ];
 
 const policyLinks = [
   { href: "/policies/refund-policy", labelKey: "policies.refundPolicy" },
   { href: "/policies/privacy-policy", labelKey: "policies.privacyPolicy" },
   { href: "/policies/terms", labelKey: "policies.terms" },
+  { href: "/policies/license", labelKey: "policies.licensePolicy" },
   { href: "/policies/seller-guidelines", labelKey: "policies.sellerGuidelines" },
   { href: "/policies/review-policy", labelKey: "policies.reviewPolicy" },
 ];
 
 export function SiteFooter() {
   const { language, setLanguage, t } = useLanguage();
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/embed/")) {
+    return null;
+  }
 
   return (
     <footer className="border-t border-slate-200/80 bg-white/88 backdrop-blur">
@@ -46,10 +56,9 @@ export function SiteFooter() {
               href={link.href}
               className="w-fit font-medium text-slate-600 hover:text-slate-950"
             >
-              {t(link.labelKey)}
+              {getFooterLinkLabel(link, language, t)}
             </Link>
           ))}
-          <span className="text-slate-500">{t("footer.contact")}</span>
         </nav>
 
         <div className="grid content-start gap-5 md:justify-self-end">
@@ -78,4 +87,16 @@ export function SiteFooter() {
       </div>
     </footer>
   );
+}
+
+function getFooterLinkLabel(
+  link: (typeof footerLinks)[number],
+  language: "en" | "zh",
+  t: (key: string) => string,
+) {
+  if ("labelKey" in link && link.labelKey) {
+    return t(link.labelKey);
+  }
+
+  return language === "zh" ? link.labelZh : link.labelEn;
 }

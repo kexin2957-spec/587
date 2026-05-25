@@ -116,6 +116,7 @@ export const dictionaries = {
       setupInstructions: "Setup instructions",
       dataPermissions: "Data permissions",
       tryDemo: "Try Demo",
+      openProductDemo: "Open Product Demo",
       buyAgent: "Buy Agent",
       requestCustomVersion: "Request Custom Version",
       buySetupService: "Buy + Setup Service",
@@ -124,6 +125,9 @@ export const dictionaries = {
       businessReady: "Business Ready",
       platformReviewed: "Platform Reviewed",
       whoFor: "Who it is for",
+      targetCustomers: "Target customers",
+      pricingOptions: "Pricing options",
+      customUpgradeOptions: "Custom upgrade options",
       exampleUseCases: "Example use cases",
       sampleQuestionsOutputs: "Sample questions and outputs",
       deliveryType: "Delivery type",
@@ -132,7 +136,7 @@ export const dictionaries = {
       similarAgents: "Similar agents",
       reviewsTitle: "Buyer reviews",
       reviewsDescription:
-        "Approved placeholder reviews show how this listing will present buyer feedback after launch.",
+        "Approved sample reviews show how this listing will present buyer feedback after launch.",
       liveDemo: "Live Demo",
       demoUnavailable: "Demo is not available for this agent yet.",
       sampleQuestions: "Sample questions",
@@ -274,7 +278,6 @@ export const dictionaries = {
       afterApproval: "After approval",
       afterApprovalDescription:
         "Approved sellers can submit agents for admin review. Submitted agents remain hidden until approved.",
-      uploadPlaceholder: "Seller upload placeholder",
       uploadEyebrow: "Seller Upload",
       uploadTitle: "Submit an agent for admin review",
       uploadDescription:
@@ -291,7 +294,7 @@ export const dictionaries = {
         "This information helps admins review where the agent belongs and how it should be delivered.",
       uploadDemoTitle: "Demo and media",
       uploadDemoDescription:
-        "Add a demo link or media placeholders if available. These are not required for review.",
+        "Add a demo link or draft media if available. These are not required for review.",
       uploadDetailsTitle: "Features, FAQ, setup, and data notes",
       uploadDetailsDescription:
         "Give admins enough detail to understand what the buyer receives and what permissions are needed.",
@@ -335,7 +338,7 @@ export const dictionaries = {
       eyebrow: "Admin",
       title: "Marketplace review dashboard",
       description:
-        "Placeholder admin dashboard for reviewing seller supply and buyer demand.",
+        "MVP admin dashboard for reviewing seller supply and buyer demand.",
       agentReviews: "Agent Reviews",
       agentReviewsDescription:
         "Review submitted agents and record admin feedback.",
@@ -348,9 +351,15 @@ export const dictionaries = {
       purchaseRequests: "Purchase Requests",
       purchaseRequestsDescription:
         "Track buy, setup service, and custom version leads.",
+      orders: "Orders",
+      ordersDescription:
+        "Track launch orders, payment status, and delivery packages.",
+      leads: "Leads",
+      leadsDescription:
+        "Review widget leads, intent, score, transcript, and follow-up status.",
       reviewAgentsTitle: "Review submitted agents",
       reviewAgentsDescription:
-        "Placeholder review queue. The schema stores review feedback in agent_review_notes.",
+        "MVP review queue. The schema stores review feedback in agent_review_notes.",
       sellerApplicationsTitle: "Review seller applications",
       sellerApplicationsPageDescription:
         "Review submitted, in-review, approved, and rejected seller applications.",
@@ -359,7 +368,10 @@ export const dictionaries = {
         "Review custom AI agent service leads submitted from the custom service page.",
       purchaseRequestsTitle: "Review purchase requests",
       purchaseRequestsPageDescription:
-        "Placeholder queue for buy agent, setup service, and custom version requests.",
+        "MVP queue for buy agent, setup service, and custom version requests.",
+      ordersTitle: "Manage orders",
+      ordersPageDescription:
+        "Review customer orders, payment confirmation, delivery status, and internal notes.",
       emptySellerApplications:
         "Seller application records will appear here after creators submit the application form.",
       emptyCustomRequests:
@@ -370,6 +382,7 @@ export const dictionaries = {
       loadingSellerApplications: "Loading seller applications...",
       loadingSellerAgents: "Loading seller agents...",
       loadingPurchaseRequests: "Loading purchase requests...",
+      loadingOrders: "Loading orders...",
       refresh: "Refresh",
       dataSource: "Data source",
       actionFailed: "Admin action failed. Please try again.",
@@ -399,6 +412,11 @@ export const dictionaries = {
       tableSubmitted: "Submitted",
       tableStatus: "Status",
       tableTimeline: "Timeline",
+      tableAmount: "Amount",
+      tableCustomer: "Customer",
+      tableDelivery: "Delivery",
+      tableOrder: "Order",
+      tablePayment: "Payment",
       sourcePage: "Source page",
       agentSlug: "Agent slug",
       leadDetails: "Lead details",
@@ -485,15 +503,23 @@ export const dictionaries = {
       businessReady: "Business Ready",
       liveDemoAvailable: "Live Demo Available",
       dataPrivacyNotice: "Data & Privacy Notice",
+      englishChineseSupport: "English/Chinese Support",
+      leadCaptureReady: "Lead Capture Ready",
+      licenseProtected: "License Protected",
+      platformHosted: "Platform Hosted",
       setupSupportAvailable: "Setup Support Available",
-      secureCheckout: "Secure Checkout",
+      websiteEmbed: "Website Embed",
+      websiteEmbedReady: "Website Embed Ready",
+      leadCapture: "Lead Capture",
+      productFaq: "Product FAQ",
+      customVersionAvailable: "Custom version available",
+      secureCheckout: "Manual Payment Confirmation",
       refundPolicy: "Refund Policy",
       viewDetails: "View Details",
       customQuote: "Custom quote",
       free: "Free",
       english: "English",
       chinese: "中文",
-      comingSoon: "Coming soon",
       no: "No",
       notProvided: "Not provided",
       yes: "Yes",
@@ -504,7 +530,7 @@ export const dictionaries = {
         "You are requesting access to a ready-made AI agent package, setup guidance, or a custom business version depending on the listing.",
       tryBeforeBuyingQuestion: "Can I try the agent before buying?",
       tryBeforeBuyingAnswer:
-        "Yes. Listings can include live demo placeholders now, with richer demo experiences planned later.",
+        "Yes. Listings can include live demo previews now, with richer demo experiences planned later.",
       customizeQuestion: "Can you customize an agent for my business?",
       customizeAnswer:
         "Yes. You can request a custom agent or a custom version of an existing marketplace agent.",
@@ -521,16 +547,17 @@ export const dictionaries = {
     footer: {
       tagline: "Business-ready AI agents with bilingual marketplace foundations.",
       policies: "Policies",
-      contact: "Contact placeholder",
+      contact: "Contact",
     },
     policies: {
       contactSupport: "Contact support",
       eyebrow: "Policy Center",
-      placeholderNotice:
-        "This policy page is a professional placeholder. It should be reviewed before public launch.",
+      reviewNotice:
+        "This policy page is a professional draft. It should be reviewed before public launch.",
       privacyPolicy: "Privacy Policy",
       refundPolicy: "Refund Policy",
       reviewPolicy: "Review Policy",
+      licensePolicy: "License Policy",
       sellerGuidelines: "Seller Guidelines",
       terms: "Terms of Service",
     },
@@ -679,6 +706,7 @@ export const dictionaries = {
       setupInstructions: "配置说明",
       dataPermissions: "数据权限说明",
       tryDemo: "体验 Demo",
+      openProductDemo: "查看成品 Demo",
       buyAgent: "购买 Agent",
       requestCustomVersion: "定制这个 Agent",
       buySetupService: "购买并配置安装",
@@ -687,6 +715,9 @@ export const dictionaries = {
       businessReady: "适合商业使用",
       platformReviewed: "平台已审核",
       whoFor: "适合谁",
+      targetCustomers: "目标客户",
+      pricingOptions: "价格方案",
+      customUpgradeOptions: "定制升级选项",
       exampleUseCases: "使用场景",
       sampleQuestionsOutputs: "示例问题与回答",
       deliveryType: "交付方式",
@@ -695,7 +726,7 @@ export const dictionaries = {
       similarAgents: "相似 Agent",
       reviewsTitle: "买家评价",
       reviewsDescription:
-        "已审核的占位评价展示上线后买家反馈的呈现方式。",
+        "已审核的样例评价展示上线后买家反馈的呈现方式。",
       liveDemo: "在线 Demo",
       demoUnavailable: "这个 Agent 暂时没有开放 Demo。",
       sampleQuestions: "示例问题",
@@ -828,7 +859,6 @@ export const dictionaries = {
       afterApproval: "通过审核后",
       afterApprovalDescription:
         "通过审核的创作者可以提交 Agent 给管理员审核。审核通过前，提交的 Agent 不会公开展示。",
-      uploadPlaceholder: "创作者上传占位页",
       uploadEyebrow: "创作者上传",
       uploadTitle: "提交 Agent 等待管理员审核",
       uploadDescription:
@@ -844,7 +874,7 @@ export const dictionaries = {
       uploadBusinessDescription:
         "这些信息帮助管理员判断 Agent 的分类、交付和售卖方式。",
       uploadDemoTitle: "Demo 与媒体",
-      uploadDemoDescription: "如果已有 Demo 或媒体占位，可以一并提交；审核不强制要求。",
+      uploadDemoDescription: "如果已有 Demo 或媒体草案，可以一并提交；审核不强制要求。",
       uploadDetailsTitle: "功能、FAQ、配置与数据说明",
       uploadDetailsDescription:
         "请提供足够信息，方便管理员理解买家会收到什么，以及需要哪些数据权限。",
@@ -886,7 +916,7 @@ export const dictionaries = {
     admin: {
       eyebrow: "管理后台",
       title: "商店审核后台",
-      description: "用于审核创作者供给和买家需求的后台占位页。",
+      description: "用于审核创作者供给和买家需求的后台 MVP 页面。",
       agentReviews: "Agent 审核",
       agentReviewsDescription: "审核提交的 Agent，并记录管理员反馈。",
       sellerApplications: "创作者申请",
@@ -895,9 +925,13 @@ export const dictionaries = {
       customRequestsDescription: "跟进企业定制开发需求。",
       purchaseRequests: "购买请求",
       purchaseRequestsDescription: "跟进购买、配置服务和定制版本线索。",
+      orders: "订单",
+      ordersDescription: "跟进正式订单、付款状态和交付包。",
+      leads: "线索",
+      leadsDescription: "查看 widget 线索、意图、评分、对话记录和跟进状态。",
       reviewAgentsTitle: "审核提交的 Agent",
       reviewAgentsDescription:
-        "审核队列占位页。数据库使用 agent_review_notes 保存审核反馈。",
+        "审核队列 MVP 页面。数据库使用 agent_review_notes 保存审核反馈。",
       sellerApplicationsTitle: "审核创作者申请",
       sellerApplicationsPageDescription:
         "审核 submitted、in_review、approved 和 rejected 状态的创作者申请。",
@@ -906,7 +940,9 @@ export const dictionaries = {
         "查看从定制服务页面提交的企业 AI Agent 定制线索。",
       purchaseRequestsTitle: "审核购买请求",
       purchaseRequestsPageDescription:
-        "用于查看购买 Agent、配置服务和定制版本请求的占位队列。",
+        "用于查看购买 Agent、配置服务和定制版本请求的 MVP 队列。",
+      ordersTitle: "管理订单",
+      ordersPageDescription: "查看客户订单、付款确认、交付状态和内部备注。",
       emptySellerApplications: "创作者提交申请表单后，申请记录会显示在这里。",
       emptyCustomRequests: "企业提交定制服务表单后，定制需求记录会显示在这里。",
       emptyPurchaseRequests:
@@ -915,6 +951,7 @@ export const dictionaries = {
       loadingSellerApplications: "正在加载创作者申请...",
       loadingSellerAgents: "正在加载创作者 Agent...",
       loadingPurchaseRequests: "正在加载购买请求...",
+      loadingOrders: "正在加载订单...",
       refresh: "刷新",
       dataSource: "数据来源",
       actionFailed: "管理操作失败，请稍后再试。",
@@ -943,6 +980,11 @@ export const dictionaries = {
       tableSubmitted: "提交时间",
       tableStatus: "状态",
       tableTimeline: "时间计划",
+      tableAmount: "金额",
+      tableCustomer: "客户",
+      tableDelivery: "交付",
+      tableOrder: "订单",
+      tablePayment: "付款",
       sourcePage: "来源页面",
       agentSlug: "Agent 标识",
       leadDetails: "线索详情",
@@ -1029,15 +1071,23 @@ export const dictionaries = {
       businessReady: "适合商业使用",
       liveDemoAvailable: "支持在线 Demo",
       dataPrivacyNotice: "数据与隐私说明",
+      englishChineseSupport: "中英文支持",
+      leadCaptureReady: "线索收集就绪",
+      licenseProtected: "License 授权保护",
+      platformHosted: "平台托管",
       setupSupportAvailable: "支持安装服务",
-      secureCheckout: "安全支付",
+      websiteEmbed: "网站嵌入",
+      websiteEmbedReady: "网站嵌入就绪",
+      leadCapture: "线索收集",
+      productFaq: "商品 FAQ",
+      customVersionAvailable: "支持定制版本",
+      secureCheckout: "人工付款确认",
       refundPolicy: "退款政策",
       viewDetails: "查看详情",
       customQuote: "定制报价",
       free: "免费",
       english: "English",
       chinese: "中文",
-      comingSoon: "即将开放",
       no: "否",
       notProvided: "未填写",
       yes: "是",
@@ -1048,7 +1098,7 @@ export const dictionaries = {
         "你可以购买现成 AI Agent 套件、配置支持，或根据具体列表申请定制企业版本。",
       tryBeforeBuyingQuestion: "购买前可以试用 Agent 吗？",
       tryBeforeBuyingAnswer:
-        "可以。当前列表支持在线 Demo 占位，后续会加入更完整的 Demo 体验。",
+        "可以。当前列表支持在线 Demo 预览，后续会加入更完整的 Demo 体验。",
       customizeQuestion: "可以为我的业务定制 Agent 吗？",
       customizeAnswer:
         "可以。你可以申请全新定制 Agent，也可以基于现有商店 Agent 定制版本。",
@@ -1065,16 +1115,17 @@ export const dictionaries = {
     footer: {
       tagline: "面向企业的 AI Agent 商店，内置双语基础能力。",
       policies: "政策",
-      contact: "联系方式占位",
+      contact: "联系方式",
     },
     policies: {
       contactSupport: "联系支持",
       eyebrow: "政策中心",
-      placeholderNotice:
-        "此政策页面为专业占位版本，正式上线前应完成审核。",
+      reviewNotice:
+        "此政策页面为专业草案版本，正式上线前应完成审核。",
       privacyPolicy: "隐私政策",
       refundPolicy: "退款政策",
       reviewPolicy: "审核政策",
+      licensePolicy: "License 政策",
       sellerGuidelines: "创作者指南",
       terms: "服务条款",
     },

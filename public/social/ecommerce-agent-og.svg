@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">E-commerce Product Support Agent</title>
+  <desc id="desc">A hosted AI product support agent for shopping questions, purchase intent, shipping, and return policy support.</desc>
+  <rect width="1200" height="630" fill="#ecfdf5"/>
+  <rect x="76" y="72" width="1048" height="486" rx="36" fill="#ffffff"/>
+  <rect x="126" y="124" width="408" height="312" rx="26" fill="#d1fae5"/>
+  <rect x="166" y="164" width="120" height="120" rx="28" fill="#10b981"/>
+  <rect x="314" y="164" width="120" height="120" rx="28" fill="#14b8a6"/>
+  <rect x="166" y="318" width="268" height="24" rx="12" fill="#064e3b"/>
+  <rect x="166" y="366" width="210" height="18" rx="9" fill="#047857"/>
+  <rect x="650" y="130" width="360" height="64" rx="24" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="3"/>
+  <rect x="706" y="236" width="340" height="64" rx="24" fill="#ecfeff" stroke="#99f6e4" stroke-width="3"/>
+  <rect x="650" y="342" width="390" height="64" rx="24" fill="#fefce8" stroke="#fde68a" stroke-width="3"/>
+  <circle cx="1030" cy="496" r="46" fill="#059669"/>
+  <text x="132" y="506" fill="#064e3b" font-family="Arial, sans-serif" font-size="48" font-weight="700">E-commerce Support Agent</text>
+  <text x="132" y="546" fill="#475569" font-family="Arial, sans-serif" font-size="25">Product FAQ, purchase intent, shipping and returns</text>
+</svg>

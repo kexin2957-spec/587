@@ -52,7 +52,24 @@ export type DemoAgent = {
   reviewCount?: number;
   supportedLanguages?: SupportedLanguage[];
   tags?: string[];
+  targetCustomersEn?: string[];
+  targetCustomersZh?: string[];
+  useCasesEn?: string[];
+  useCasesZh?: string[];
+  demoSamplesEn?: DemoFaqItem[];
+  demoSamplesZh?: DemoFaqItem[];
+  pricingOptionsEn?: string[];
+  pricingOptionsZh?: string[];
+  customUpgradeOptionsEn?: string[];
+  customUpgradeOptionsZh?: string[];
+  coverImageStyleEn?: string;
+  coverImageStyleZh?: string;
 };
+
+export const launchAgentSlugs = [
+  "website-customer-support-agent",
+  "ecommerce-product-support-agent",
+] as const;
 
 export const demoCategories: DemoCategory[] = [
   {
@@ -158,113 +175,551 @@ export const demoCategories: DemoCategory[] = [
 export const demoAgents: DemoAgent[] = [
   {
     slug: "website-customer-support-agent",
-    titleEn: "Website Customer Support Agent",
-    titleZh: "网站客服 Agent",
+    titleEn: "Website Sales & Lead Capture Agent",
+    titleZh: "网站销售客服获客 Agent",
     shortDescriptionEn:
-      "Answers common website questions and captures qualified leads.",
-    shortDescriptionZh: "回答网站常见问题并收集合格线索。",
+      "Turn website visitors into qualified leads with an AI sales and support chatbot that answers FAQs, explains services, qualifies intent, and captures contact details.",
+    shortDescriptionZh:
+      "让网站访客变成高意向客户的 AI 销售客服 Agent，可回答 FAQ、说明服务、识别意图并收集联系方式。",
     descriptionEn:
-      "A ready-made website chatbot for businesses that need fast customer support coverage without hiring a larger support team.",
+      "Website Sales & Lead Capture Agent is a launch-ready AI sales and support chatbot for business websites, SaaS sites, agencies, consultants, local service businesses, B2B companies, AI service providers, and small to mid-sized teams. It helps visitors understand your services, answers approved FAQ, explains pricing ranges carefully, asks follow-up qualification questions, detects visitor intent, scores leads, collects contact details, and routes high-value inquiries for human follow-up. Customers receive a hosted agent, iframe/script embed code, a lightweight customer configuration dashboard, delivery documentation, and an admin lead backend.",
     descriptionZh:
-      "适合企业网站的智能客服，可快速覆盖常见咨询并减少人工客服压力。",
+      "网站销售客服获客 Agent 是一款可直接用于销售演示和客户交付的企业网站 AI 销售客服聊天机器人，适合商业网站、SaaS 网站、服务机构、顾问、本地服务商家、B2B 公司、AI 服务商以及中小企业团队。它可以帮助访客理解服务内容，回答已确认 FAQ，谨慎说明价格范围，追问关键需求，识别访客意图，给线索打分，收集联系方式，并把高价值咨询转交人工跟进。客户会收到托管 Agent、iframe/script 嵌入代码、轻量客户配置后台、交付文档和后台线索管理能力。",
     featuresEn: [
-      "Answer approved website FAQs",
-      "Collect contact details and intent",
-      "Escalate complex requests to the team",
+      "Answers common website FAQs using approved business content.",
+      "Explains services, packages, availability, and pricing ranges in a careful, non-promissory way.",
+      "Collects visitor name, email, company, website, and inquiry details when the visitor is ready.",
+      "Qualifies leads by intent, urgency, budget range, and service fit.",
+      "Guides visitors to book a call, submit a form, or wait for team follow-up.",
+      "Supports English and Chinese conversations from the same website widget.",
+      "Can be embedded into most business websites as a customer support chatbot.",
+      "Can be customized with your brand tone, company FAQ, service documents, and handoff rules.",
     ],
-    featuresZh: ["回答已审核网站 FAQ", "收集联系方式和需求意向", "将复杂咨询转交团队"],
+    featuresZh: [
+      "基于已确认的业务内容回答网站常见问题。",
+      "谨慎说明服务、套餐、可用性和价格范围，不做未经确认的承诺。",
+      "在访客有意向时收集姓名、邮箱、公司、网站和咨询内容。",
+      "根据意向、紧急程度、预算范围和服务匹配度进行线索初筛。",
+      "引导访客预约通话、提交表单，或等待团队跟进。",
+      "支持英文和中文对话，可在同一个网站组件中使用。",
+      "可作为客服聊天机器人嵌入大多数企业网站。",
+      "可根据品牌语气、公司 FAQ、服务文档和人工转交流程进行定制。",
+    ],
     faqEn: [
       {
-        question: "Can it use our website content?",
-        answer: "Yes. Setup starts from approved pages, FAQs, and policy docs.",
+        question: "What am I buying?",
+        answer:
+          "You are buying a ready-made website chatbot agent package with support flows, lead capture questions, bilingual copy, setup guidance, and demo behavior that can be adapted to your business content.",
+      },
+      {
+        question: "Can it answer questions from my own website?",
+        answer:
+          "Yes. During setup, you can provide approved website pages, FAQs, pricing notes, service descriptions, and policies. The agent should only answer from content you approve.",
+      },
+      {
+        question: "Can visitors book a consultation?",
+        answer:
+          "Yes. The base version can guide visitors to a booking link or contact form. Calendar booking integration can be added as a custom upgrade.",
       },
       {
         question: "Does it replace human support?",
-        answer: "No. It handles first-line questions and escalates exceptions.",
+        answer:
+          "No. It is designed for first-line website support and lead capture. Complex, sensitive, or high-value requests should be handed off to your team.",
+      },
+      {
+        question: "Can it support both English and Chinese?",
+        answer:
+          "Yes. The agent includes English and Chinese conversation patterns and can be customized for your preferred tone in each language.",
+      },
+      {
+        question: "Can it connect to my CRM?",
+        answer:
+          "CRM integration is available as a custom upgrade. The standard package can collect lead details without direct access to private business systems.",
       },
     ],
     faqZh: [
       {
-        question: "可以使用我们网站的内容吗？",
-        answer: "可以。配置时会使用已确认的网站页面、FAQ 和政策文档。",
+        question: "我购买的是什么？",
+        answer:
+          "你购买的是一套现成的网站客服聊天机器人 Agent，包含客服对话流程、线索收集问题、双语文案、配置说明和 Demo 行为，可根据你的业务内容进行调整。",
+      },
+      {
+        question: "它可以基于我们自己的网站内容回答吗？",
+        answer:
+          "可以。配置时可以提供已确认的网站页面、FAQ、价格说明、服务介绍和政策文档。Agent 应只基于你批准的内容回答。",
+      },
+      {
+        question: "访客可以预约咨询吗？",
+        answer:
+          "可以。基础版本可以引导访客前往预约链接或联系表单。如需日历预约集成，可作为定制升级添加。",
       },
       {
         question: "它会完全替代人工客服吗？",
-        answer: "不会。它负责一线常见问题，并将复杂情况转交人工。",
+        answer:
+          "不会。它适合处理一线常见问题和线索收集。复杂、敏感或高价值需求应转交给你的团队处理。",
+      },
+      {
+        question: "支持英文和中文吗？",
+        answer:
+          "支持。该 Agent 包含英文和中文对话结构，也可以按你的品牌语气分别定制两种语言。",
+      },
+      {
+        question: "可以连接 CRM 吗？",
+        answer:
+          "CRM 集成可作为定制升级。标准版本可以收集线索信息，但不会直接访问企业私有系统。",
       },
     ],
     setupInstructionsEn:
-      "Connect approved website pages, add FAQ documents, configure escalation rules, and embed the chat widget.",
+      "Start with the Agent Only package by adding your business name, website URL, service pages, FAQ, pricing notes, booking/contact links, and escalation email. For Setup Service, the platform configures the website embed, tests sample visitor questions, adjusts tone, and verifies lead capture fields. For a Custom Version, we can add company documents, CRM routing, email alerts, calendar booking, multilingual rules, and human handoff workflows.",
     setupInstructionsZh:
-      "连接已审核的网站页面，添加 FAQ 文档，配置转人工规则，并嵌入聊天组件。",
+      "Agent Only 版本需要先准备企业名称、网站地址、服务页面、FAQ、价格说明、预约/联系链接和转交邮箱。选择 Setup Service 时，平台会协助配置网站嵌入、测试访客常见问题、调整语气并验证线索收集字段。Custom Version 可进一步加入公司文档、CRM 流转、邮件提醒、日历预约、多语言规则和人工转交流程。",
     dataPermissionsEn:
-      "Uses approved website and FAQ content. It does not require payment data or private customer records.",
+      "The agent may collect visitor contact information and inquiry details, including name, email, company, website URL, budget range, timeline, and service interest. It uses only approved website content, FAQ documents, and configuration notes unless you add a custom integration. It does not access private business systems, CRM records, payment data, internal documents, or customer databases by default.",
     dataPermissionsZh:
-      "使用已审核的网站和 FAQ 内容，不需要支付数据或客户隐私档案。",
+      "该 Agent 可能会收集访客联系方式和咨询信息，包括姓名、邮箱、公司、网站地址、预算范围、时间计划和服务兴趣。默认只使用已批准的网站内容、FAQ 文档和配置说明；除非额外添加定制集成，否则不会访问企业私有系统、CRM 记录、支付数据、内部文档或客户数据库。",
     categorySlug: "customer-support",
     deliveryType: "website_chatbot",
     pricingType: "one_time",
-    priceUsd: 499,
-    priceCny: 3599,
-    demoUrl: "https://demo.example.com/agents/website-customer-support",
+    priceUsd: 49,
+    priceCny: 399,
+    demoUrl: "/demo/website-customer-support-agent",
     demoEnabled: true,
     isFeatured: true,
     isVerified: true,
+    createdAt: "2026-05-24",
+    ownerType: "platform",
+    purchaseCount: 68,
+    installCount: 180,
+    rating: 4.9,
+    reviewCount: 32,
+    supportedLanguages: ["en", "zh"],
+    tags: [
+      "customer support",
+      "sales lead generation",
+      "website chatbot",
+      "lead capture",
+      "intent detection",
+      "lead scoring",
+      "small business",
+      "bilingual",
+      "website embed",
+      "service business",
+    ],
+    targetCustomersEn: [
+      "Small business websites that need quick first-line visitor support.",
+      "SaaS websites that want to answer product, pricing, and trial questions before sales follow-up.",
+      "Agency websites that need to explain services and qualify project inquiries.",
+      "Service businesses and consultants that want to collect structured consultation requests.",
+      "Local businesses that need a simple bilingual support and booking assistant.",
+    ],
+    targetCustomersZh: [
+      "需要快速覆盖一线访客咨询的小型企业网站。",
+      "希望在销售跟进前回答产品、价格和试用问题的 SaaS 网站。",
+      "需要说明服务并筛选项目需求的服务机构网站。",
+      "希望结构化收集咨询需求的服务型企业和顾问。",
+      "需要简单双语客服和预约助手的本地商家。",
+    ],
+    useCasesEn: [
+      "Answer common visitor questions about services, pricing ranges, timelines, and next steps.",
+      "Collect qualified leads with name, email, company, inquiry, budget range, and urgency.",
+      "Guide visitors to book a consultation or submit a contact form when they show buying intent.",
+      "Help visitors choose the right service category based on their goals and constraints.",
+      "Reduce repetitive support messages while keeping complex requests ready for human follow-up.",
+      "Offer English and Chinese visitor support on the same website.",
+    ],
+    useCasesZh: [
+      "回答访客关于服务、价格范围、交付周期和下一步的常见问题。",
+      "收集姓名、邮箱、公司、咨询内容、预算范围和紧急程度等有效线索。",
+      "当访客有购买意向时，引导预约咨询或提交联系表单。",
+      "根据访客目标和限制条件，帮助选择合适的服务类型。",
+      "减少重复咨询，同时把复杂需求整理好转交人工跟进。",
+      "在同一个网站中提供英文和中文访客支持。",
+    ],
+    demoSamplesEn: [
+      {
+        question: "What services do you offer?",
+        answer:
+          "We can help explain the services listed on this website, summarize what each option is best for, and point you to the right next step. If you share what you are trying to achieve, I can suggest which service category may fit and collect your details for the team to review.",
+      },
+      {
+        question: "How much does it cost?",
+        answer:
+          "Pricing depends on the service scope, timeline, and any integrations needed. I can share published pricing ranges when they are available, but I will not invent a fixed quote. If you tell me your goal, budget range, and timeline, I can send the inquiry to the team for a proper estimate.",
+      },
+      {
+        question: "Can I book a consultation?",
+        answer:
+          "Yes. I can guide you to the booking link or collect your name, email, company, and a short note about what you need. The team can then confirm availability and follow up with the right next step.",
+      },
+      {
+        question: "Do you support small businesses?",
+        answer:
+          "Yes, this service is suitable for small businesses that need a practical starting point. To help the team respond usefully, please share your business type, website, main customer question, and whether you need setup help or a custom version.",
+      },
+      {
+        question: "Can you help me choose the right service?",
+        answer:
+          "I can help narrow it down. Tell me what outcome you want, who your customers are, what you already have in place, and whether you need a simple setup or deeper integration. I can then suggest a likely direction and collect your details for review.",
+      },
+      {
+        question: "What information do you need from me?",
+        answer:
+          "The most useful details are your name, email, company, website URL, the problem you want to solve, any relevant pages or documents, budget range, and timeline. You can share only what you are comfortable providing at this stage.",
+      },
+    ],
+    demoSamplesZh: [
+      {
+        question: "你们提供哪些服务？",
+        answer:
+          "我可以根据网站上已确认的内容，说明各项服务适合什么场景，并引导你进入下一步。如果你告诉我想解决的问题，我可以帮你判断可能适合的服务类型，并收集信息交给团队跟进。",
+      },
+      {
+        question: "费用大概是多少？",
+        answer:
+          "费用取决于服务范围、交付周期和是否需要系统集成。我可以说明网站上公开的价格范围，但不会编造固定报价。你可以提供目标、预算范围和时间计划，我会把需求整理给团队评估。",
+      },
+      {
+        question: "可以预约咨询吗？",
+        answer:
+          "可以。我可以引导你前往预约链接，或先收集你的姓名、邮箱、公司和简短需求说明。团队会根据情况确认时间并跟进下一步。",
+      },
+      {
+        question: "你们支持小型企业吗？",
+        answer:
+          "支持。这个服务适合希望先用实用方案开始的小型企业。为了让团队更准确回复，你可以提供业务类型、网站、主要客户问题，以及是否需要配置安装或定制版本。",
+      },
+      {
+        question: "你能帮我选择合适的服务吗？",
+        answer:
+          "可以先帮你缩小范围。请告诉我你希望达成的结果、客户是谁、现在已有的资料或系统，以及你需要简单配置还是更深度的集成。我可以给出初步方向并收集信息供团队审核。",
+      },
+      {
+        question: "你需要我提供哪些信息？",
+        answer:
+          "最有帮助的信息包括姓名、邮箱、公司、网站地址、想解决的问题、相关页面或文档、预算范围和时间计划。你可以只提供当前愿意分享的内容。",
+      },
+    ],
+    pricingOptionsEn: [
+      "Agent Only: $49. Includes the ready-made website chatbot structure, bilingual conversation copy, lead capture flow, and setup instructions.",
+      "Setup Service: $299. Includes help configuring the agent for your website, adjusting tone, validating key questions, and preparing the embed handoff.",
+      "Custom Version: From $999. Adds deeper business customization such as documents, integrations, booking, notifications, CRM routing, and human handoff.",
+    ],
+    pricingOptionsZh: [
+      "Agent Only：¥399。包含现成网站客服聊天机器人结构、双语对话文案、线索收集流程和配置说明。",
+      "Setup Service：¥1999。包含网站配置协助、语气调整、关键问题测试和嵌入交付准备。",
+      "Custom Version：¥6999 起。可加入更深度的业务定制，例如公司文档、系统集成、预约、通知、CRM 流转和人工转交。",
+    ],
+    customUpgradeOptionsEn: [
+      "Upload company FAQ and service documents.",
+      "Customize brand tone for English and Chinese conversations.",
+      "Website embed setup and launch support.",
+      "CRM integration for qualified lead routing.",
+      "Email notification when a new lead is captured.",
+      "Calendar booking integration for consultation scheduling.",
+      "Expanded multi-language support beyond English and Chinese.",
+      "Human handoff rules for complex, urgent, or sensitive inquiries.",
+    ],
+    customUpgradeOptionsZh: [
+      "上传公司 FAQ 和服务文档。",
+      "定制英文和中文对话的品牌语气。",
+      "网站嵌入配置和上线支持。",
+      "CRM 集成，用于有效线索流转。",
+      "捕获新线索时发送邮件通知。",
+      "日历预约集成，用于安排咨询。",
+      "扩展英文和中文以外的多语言支持。",
+      "为复杂、紧急或敏感咨询设置人工转交规则。",
+    ],
+    coverImageStyleEn:
+      "Professional SaaS-style cover: a clean website chat widget on a business website dashboard, soft blue-cyan gradient background, structured chat bubbles, and a customer support icon.",
+    coverImageStyleZh:
+      "专业 SaaS 风格封面：商务网站仪表盘上的简洁聊天组件，柔和蓝青渐变背景，结构化聊天气泡和客服图标。",
   },
   {
     slug: "ecommerce-product-support-agent",
     titleEn: "E-commerce Product Support Agent",
     titleZh: "电商产品客服 Agent",
     shortDescriptionEn:
-      "Guides shoppers through product questions, returns, and order help.",
-    shortDescriptionZh: "帮助买家咨询商品、退换货和订单问题。",
+      "An AI product support agent that helps online stores answer product questions, recommend items, explain policies, and capture purchase intent.",
+    shortDescriptionZh:
+      "帮助电商网站自动回答商品问题、推荐产品、解释政策并收集购买意向的 AI 产品客服 Agent。",
     descriptionEn:
-      "A commerce support agent for product catalogs, shipping questions, return policies, and conversion-focused recommendations.",
+      "E-commerce Product Support Agent is a ready-to-sell AI product support chatbot for Shopify stores, WooCommerce stores, independent e-commerce websites, cross-border sellers, small online brands, Amazon sellers with independent websites, and product-based businesses. It answers product FAQ, recommends items based on shopper needs, explains shipping and return policies, handles sizing/specification questions, captures buyer intent, collects contact details when needed, and routes order tracking or custom quote requests to a human team. It does not claim real-time inventory or order tracking unless a custom Shopify/order/inventory integration is enabled.",
     descriptionZh:
-      "面向电商商品目录、物流、退换货政策和转化推荐的客服 Agent。",
+      "电商产品客服 Agent 是一款面向 Shopify 店铺、WooCommerce 店铺、独立电商网站、跨境卖家、小型线上品牌、拥有独立站的 Amazon 卖家和产品型企业的 AI 商品客服聊天机器人。它可以回答商品 FAQ，根据买家需求推荐商品，解释物流、退换货和退款政策，回答尺码/规格问题，识别购买意向，在需要时收集联系方式，并把订单查询、批量采购或定制报价请求转交人工团队。除非启用 Shopify、订单或库存系统集成，否则它不会声称可以实时查询订单或库存。",
     featuresEn: [
-      "Answer product questions",
-      "Explain shipping and returns",
-      "Recommend products from customer needs",
+      "Answers product FAQ, sizing, materials, compatibility, use-case, and specification questions from approved store content.",
+      "Recommends products based on shopper needs, use case, budget, gift recipient, style, size, or buying intent.",
+      "Explains shipping, delivery, return, refund, exchange, and warranty policies without inventing unsupported promises.",
+      "Captures purchase intent, buyer email, phone, company, product interest, quantity, and inquiry details.",
+      "Classifies intents such as product question, recommendation, shipping, return/refund, order tracking, purchase intent, and human handoff.",
+      "Scores leads as hot, warm, cold, or invalid based on purchase intent, contact info, availability questions, bulk order needs, or checkout blockers.",
+      "Supports human handoff for order tracking, exact policy disputes, complaints, bulk quote requests, and custom product questions.",
+      "Supports English and Chinese shoppers from the same website chatbot.",
+      "Can be embedded into Shopify, WooCommerce, or independent e-commerce websites with iframe or script embed code.",
+      "Can be upgraded for Shopify, order, inventory, CRM, email, and custom product recommendation logic.",
     ],
-    featuresZh: ["回答商品问题", "解释物流与退换货政策", "根据需求推荐商品"],
+    featuresZh: [
+      "基于已审核的店铺内容回答商品 FAQ、尺码、材质、兼容性、使用场景和规格问题。",
+      "根据买家需求、使用场景、预算、送礼对象、风格、尺码或购买意向推荐商品。",
+      "解释物流、配送、退货、退款、换货和保修政策，不编造未确认承诺。",
+      "收集购买意向、买家邮箱、电话、公司、感兴趣商品、数量和咨询详情。",
+      "识别商品问题、商品推荐、物流问题、退换货/退款、订单查询、购买意向和人工转接等意图。",
+      "根据购买意图、联系方式、库存/结账问题、批量采购或定制报价需求给线索评分。",
+      "订单查询、政策争议、投诉、批量报价和复杂商品问题会触发人工转接。",
+      "同一网站聊天组件支持英文和中文买家。",
+      "可通过 iframe 或 script 嵌入 Shopify、WooCommerce 或独立电商网站。",
+      "可升级接入 Shopify、订单、库存、CRM、邮件通知和自定义商品推荐逻辑。",
+    ],
     faqEn: [
       {
-        question: "Can it connect to a catalog?",
-        answer: "Yes. Catalog integration can be added after the foundation.",
+        question: "What am I buying?",
+        answer:
+          "You are buying a ready-made e-commerce product support agent package with a hosted demo, product FAQ conversation flow, purchase-intent capture, embed code, setup guidance, and delivery documentation.",
       },
       {
-        question: "Can it handle returns?",
-        answer: "It can explain policies and collect details for staff follow-up.",
+        question: "Can it recommend products?",
+        answer:
+          "Yes. The standard version can recommend products from configured product notes, FAQ, categories, and approved guidance. Deeper catalog-aware logic can be added in a custom version.",
+      },
+      {
+        question: "Can it track orders in real time?",
+        answer:
+          "Not by default. Real-time order lookup requires a Shopify, WooCommerce, or order system integration. Without that, the agent can collect the order number and email for human follow-up.",
+      },
+      {
+        question: "Can it check inventory?",
+        answer:
+          "Not by default. The base agent can answer from configured availability notes. Real-time inventory requires a custom inventory integration.",
+      },
+      {
+        question: "Can it explain returns and refunds?",
+        answer:
+          "Yes. It can explain approved return, refund, exchange, warranty, and shipping policies, and collect details for staff follow-up when a case needs review.",
+      },
+      {
+        question: "Can I use it on Shopify or WooCommerce?",
+        answer:
+          "Yes. The launch package includes iframe and script embed options. Shopify/order/inventory data lookup can be added as a Custom Version.",
       },
     ],
     faqZh: [
       {
-        question: "可以连接商品目录吗？",
-        answer: "可以。基础功能完成后可接入商品目录。",
+        question: "我购买的是什么？",
+        answer:
+          "你购买的是一套现成的电商产品客服 Agent，包含托管 Demo、商品 FAQ 对话流程、购买意向收集、嵌入代码、配置说明和交付文档。",
       },
       {
-        question: "可以处理退货吗？",
-        answer: "可以解释政策并收集退货信息，交给团队跟进。",
+        question: "它可以推荐商品吗？",
+        answer:
+          "可以。标准版本可以基于已配置的商品说明、FAQ、商品分类和审核过的导购规则进行推荐。更深度的商品目录推荐逻辑可作为定制版本增加。",
+      },
+      {
+        question: "它可以实时查询订单吗？",
+        answer:
+          "默认不支持实时订单查询。实时订单查询需要接入 Shopify、WooCommerce 或订单系统。未接入时，Agent 可以收集订单号和邮箱，转交人工跟进。",
+      },
+      {
+        question: "它可以实时查询库存吗？",
+        answer:
+          "默认不支持实时库存查询。基础版本可以基于配置好的库存/可售说明回答。实时库存需要定制库存系统集成。",
+      },
+      {
+        question: "它可以说明退换货和退款政策吗？",
+        answer:
+          "可以。它可以解释已审核的退货、退款、换货、保修和物流政策，并在需要人工审核时收集信息交给团队。",
+      },
+      {
+        question: "可以用在 Shopify 或 WooCommerce 吗？",
+        answer:
+          "可以。发布版本包含 iframe 和 script 两种嵌入方式。Shopify、订单和库存数据查询可作为 Custom Version 增加。",
       },
     ],
     setupInstructionsEn:
-      "Upload product FAQs, return policies, shipping rules, and sample catalog content.",
+      "Prepare product FAQ, product categories, key product descriptions, sizing/specification notes, shipping policy, return/refund policy, warranty notes, support contact email, and common shopper questions. Agent Only includes the hosted demo, embed code, and documentation. Agent + Setup includes help configuring product FAQ, shipping/return policy answers, brand tone, and website embed support. Custom Version can add Shopify, WooCommerce, order, inventory, CRM, email, and advanced recommendation integrations.",
     setupInstructionsZh:
-      "上传商品 FAQ、退换货政策、物流规则和示例商品内容。",
+      "请准备商品 FAQ、商品分类、核心商品说明、尺码/规格说明、物流政策、退货/退款政策、保修说明、客服邮箱和常见买家问题。Agent Only 包含托管 Demo、嵌入代码和使用文档。Agent + Setup 包含商品 FAQ 配置、物流/退换货政策配置、品牌语气调整和网站嵌入支持。Custom Version 可增加 Shopify、WooCommerce、订单、库存、CRM、邮件通知和高级推荐逻辑集成。",
     dataPermissionsEn:
-      "Uses product and policy data. Order system access should be scoped later.",
+      "The base agent uses only product FAQ, product descriptions, policy notes, and customer configuration you provide. It may collect shopper name, email, phone, company, product interest, quantity, order number, and inquiry details for follow-up. It does not access private order systems, payment data, customer accounts, inventory, or CRM records unless a custom integration is explicitly added and scoped.",
     dataPermissionsZh:
-      "使用商品和政策数据。订单系统权限后续应按范围接入。",
+      "基础版本只使用你提供的商品 FAQ、商品说明、政策说明和客户配置。它可能会收集买家姓名、邮箱、电话、公司、感兴趣商品、数量、订单号和咨询详情，用于后续跟进。除非明确增加并限定范围的定制集成，否则它不会访问私有订单系统、支付数据、客户账户、库存或 CRM 记录。",
     categorySlug: "ecommerce",
-    deliveryType: "hosted_agent",
-    pricingType: "monthly",
-    priceUsd: 199,
-    priceCny: 1399,
-    demoUrl: "https://demo.example.com/agents/ecommerce-product-support",
+    deliveryType: "website_chatbot",
+    pricingType: "one_time",
+    priceUsd: 79,
+    priceCny: 599,
+    demoUrl: "/embed/agents/ecommerce-product-support-agent",
     demoEnabled: true,
     isFeatured: true,
     isVerified: true,
+    createdAt: "2026-05-24",
+    ownerType: "platform",
+    purchaseCount: 44,
+    installCount: 96,
+    rating: 4.8,
+    reviewCount: 21,
+    supportedLanguages: ["en", "zh"],
+    tags: [
+      "ecommerce",
+      "product support",
+      "product recommendations",
+      "shipping",
+      "returns",
+      "purchase intent",
+      "Shopify",
+      "WooCommerce",
+      "website embed",
+      "bilingual",
+    ],
+    targetCustomersEn: [
+      "Shopify stores that need product FAQ and purchase-intent support.",
+      "WooCommerce stores that want to reduce repetitive product and policy questions.",
+      "Independent e-commerce websites that need a guided product support chatbot.",
+      "Cross-border sellers that need English and Chinese shopper support.",
+      "Small online brands that want to capture product interest before checkout.",
+      "Amazon sellers with independent websites that need brand-owned support and lead capture.",
+      "Product-based businesses that receive repeated sizing, specification, shipping, and return questions.",
+    ],
+    targetCustomersZh: [
+      "需要商品 FAQ 和购买意向支持的 Shopify 店铺。",
+      "希望减少重复商品和政策咨询的 WooCommerce 店铺。",
+      "需要导购型产品客服聊天机器人的独立电商网站。",
+      "需要中英文买家支持的跨境卖家。",
+      "希望在结账前收集商品兴趣的小型线上品牌。",
+      "拥有独立站、需要品牌自有客服和线索收集的 Amazon 卖家。",
+      "经常收到尺码、规格、物流和退换货问题的产品型企业。",
+    ],
+    useCasesEn: [
+      "Answer product questions about sizing, specs, materials, compatibility, usage, and care.",
+      "Recommend products for gifts, budgets, use cases, customer preferences, or buying goals.",
+      "Explain shipping, delivery time, return, refund, exchange, warranty, and support policies.",
+      "Collect purchase-intent leads when shoppers ask about availability, discounts, bulk orders, or custom quotes.",
+      "Route order tracking questions to human follow-up unless order-system integration is enabled.",
+      "Support English and Chinese shoppers from the same e-commerce website.",
+    ],
+    useCasesZh: [
+      "回答关于尺码、规格、材质、兼容性、使用方式和保养说明的商品问题。",
+      "根据送礼、预算、使用场景、偏好或购买目标推荐商品。",
+      "解释物流、配送时间、退货、退款、换货、保修和客服政策。",
+      "当买家询问库存、折扣、批量采购或定制报价时收集购买意向线索。",
+      "未启用订单系统集成时，将订单查询问题转交人工跟进。",
+      "同一电商网站支持英文和中文买家。",
+    ],
+    demoSamplesEn: [
+      {
+        question: "Which product is best for me?",
+        answer:
+          "I can help narrow it down. Tell me who the product is for, your budget range, preferred style or size, and how you plan to use it. I can recommend from configured product categories, and if you need a custom or bulk option, I can collect your details for the team.",
+      },
+      {
+        question: "Do you offer free shipping?",
+        answer:
+          "I can explain the store's approved shipping policy and any published thresholds. I will not invent free-shipping promises. If your order or destination needs review, share your email and destination so the team can confirm.",
+      },
+      {
+        question: "What is your return policy?",
+        answer:
+          "I can explain the configured return, refund, and exchange policy. If you already purchased and need help with a specific order, please share your order number and email so the team can follow up.",
+      },
+      {
+        question: "Is this product available in different sizes?",
+        answer:
+          "I can answer from configured size and specification notes. If real-time inventory is not integrated, I can collect the product name, size, and your email so the team can confirm availability.",
+      },
+      {
+        question: "Can I track my order?",
+        answer:
+          "Real-time order tracking requires Shopify, WooCommerce, or order system integration. Without that integration, I can collect your order number and email and route it to the support team.",
+      },
+      {
+        question: "Can you recommend something for a gift?",
+        answer:
+          "Yes. Tell me the recipient, occasion, budget range, preferred style, and any constraints. I can suggest a product category from the configured catalog and collect your email if you want the team to follow up.",
+      },
+      {
+        question: "Can I get a discount for bulk orders?",
+        answer:
+          "Bulk order pricing usually needs human review. Please share the product, quantity, company, target timeline, and contact email, and I will mark the inquiry as a high-intent lead for follow-up.",
+      },
+      {
+        question: "Can I talk to a human?",
+        answer:
+          "Yes. Share your name, email, order number if relevant, and a short description of what you need. I will route the request to the team for human follow-up.",
+      },
+    ],
+    demoSamplesZh: [
+      {
+        question: "哪款产品最适合我？",
+        answer:
+          "我可以先帮你缩小范围。请告诉我购买对象、预算范围、偏好风格或尺码，以及使用场景。我会基于已配置的商品分类给出推荐方向；如果涉及定制或批量采购，我可以收集信息交给团队跟进。",
+      },
+      {
+        question: "你们包邮吗？",
+        answer:
+          "我可以说明店铺已确认的物流政策和公开的包邮门槛，但不会编造未确认承诺。如果你的订单或收货地区需要单独确认，请留下邮箱和地区，团队可以进一步确认。",
+      },
+      {
+        question: "退货政策是什么？",
+        answer:
+          "我可以解释已配置的退货、退款和换货政策。如果你已经购买并需要处理具体订单，请提供订单号和邮箱，团队会跟进。",
+      },
+      {
+        question: "这个产品有不同尺码吗？",
+        answer:
+          "我可以基于已配置的尺码和规格说明回答。如果没有接入实时库存，我可以收集商品名、尺码和邮箱，让团队确认是否可购买。",
+      },
+      {
+        question: "我可以查询订单物流吗？",
+        answer:
+          "实时订单查询需要接入 Shopify、WooCommerce 或订单系统。如果未启用集成，我可以收集你的订单号和邮箱，并转交客服团队跟进。",
+      },
+      {
+        question: "可以推荐一款适合送礼的产品吗？",
+        answer:
+          "可以。请告诉我收礼对象、场景、预算范围、偏好风格和限制条件。我可以从已配置的商品目录中推荐方向，并在你需要时收集邮箱让团队跟进。",
+      },
+      {
+        question: "批量购买有折扣吗？",
+        answer:
+          "批量采购价格通常需要人工审核。请提供商品、数量、公司、目标时间和联系邮箱，我会把它标记为高意向线索交给团队跟进。",
+      },
+      {
+        question: "可以转人工吗？",
+        answer:
+          "可以。请留下姓名、邮箱、相关订单号以及简短问题说明，我会把请求转交团队人工跟进。",
+      },
+    ],
+    pricingOptionsEn: [
+      "Agent Only: $79. Includes the e-commerce product support agent template, hosted demo, basic iframe/script embed code, product FAQ flow, purchase-intent capture, and documentation.",
+      "Agent + Setup: $399. Includes product FAQ setup, shipping/return policy setup, brand tone adjustment, website embed support, and launch testing.",
+      "Custom Version: From $1499. Adds Shopify/order/inventory integration, CRM/email integration, custom recommendation logic, bulk-order flow, and advanced handoff rules.",
+    ],
+    pricingOptionsZh: [
+      "Agent Only：¥599。包含电商产品客服 Agent 模板、托管 Demo、基础 iframe/script 嵌入代码、商品 FAQ 流程、购买意向收集和文档。",
+      "Agent + Setup：¥2999。包含商品 FAQ 配置、物流/退换货政策配置、品牌语气调整、网站嵌入支持和上线测试。",
+      "Custom Version：¥9999 起。包含 Shopify/订单/库存集成、CRM/邮件集成、自定义推荐逻辑、批量采购流程和高级人工转接规则。",
+    ],
+    customUpgradeOptionsEn: [
+      "Upload product catalog, product FAQ, size charts, policy documents, and brand voice notes.",
+      "Shopify, WooCommerce, order, or inventory lookup integration.",
+      "CRM and email integration for buyer-intent or bulk-order follow-up.",
+      "Custom product recommendation logic by category, use case, budget, gift recipient, size, or compatibility.",
+      "Human handoff for order tracking, complaints, policy disputes, high-value buyers, and custom quotes.",
+      "Multi-language support beyond English and Chinese.",
+      "Analytics for top questions, product interest, unanswered questions, and conversion blockers.",
+    ],
+    customUpgradeOptionsZh: [
+      "上传商品目录、商品 FAQ、尺码表、政策文档和品牌语气说明。",
+      "接入 Shopify、WooCommerce、订单或库存查询。",
+      "CRM 和邮件集成，用于购买意向或批量采购跟进。",
+      "按分类、场景、预算、送礼对象、尺码或兼容性定制商品推荐逻辑。",
+      "针对订单查询、投诉、政策争议、高价值买家和定制报价设置人工转接。",
+      "扩展英文和中文以外的多语言支持。",
+      "分析热门问题、商品兴趣、未回答问题和转化阻碍。",
+    ],
+    coverImageStyleEn:
+      "Professional SaaS/e-commerce cover: online store product cards, shopping cart, AI chat assistant, purchase-intent lead card, soft emerald-cyan gradient, premium business style.",
+    coverImageStyleZh:
+      "专业 SaaS/电商风格封面：线上商店商品卡片、购物车、AI 聊天助手、购买意向线索卡片，柔和绿色-青色渐变，商务高级感。",
   },
   {
     slug: "real-estate-lead-agent",
@@ -315,7 +770,7 @@ export const demoAgents: DemoAgent[] = [
     pricingType: "one_time",
     priceUsd: 799,
     priceCny: 5799,
-    demoUrl: "https://demo.example.com/agents/real-estate-lead",
+    demoUrl: "/agents/real-estate-lead-agent#live-demo",
     demoEnabled: true,
     isFeatured: true,
     isVerified: true,
@@ -368,7 +823,7 @@ export const demoAgents: DemoAgent[] = [
     pricingType: "monthly",
     priceUsd: 99,
     priceCny: 699,
-    demoUrl: "https://demo.example.com/agents/restaurant-booking",
+    demoUrl: "/agents/restaurant-booking-agent#live-demo",
     demoEnabled: true,
     isFeatured: false,
     isVerified: true,
@@ -421,7 +876,7 @@ export const demoAgents: DemoAgent[] = [
     pricingType: "one_time",
     priceUsd: 599,
     priceCny: 4299,
-    demoUrl: "https://demo.example.com/agents/course-enrollment",
+    demoUrl: "/agents/course-enrollment-agent#live-demo",
     demoEnabled: true,
     isFeatured: false,
     isVerified: true,
@@ -474,7 +929,7 @@ export const demoAgents: DemoAgent[] = [
     pricingType: "custom_quote",
     priceUsd: 1200,
     priceCny: 8800,
-    demoUrl: "https://demo.example.com/agents/medical-beauty-consultation",
+    demoUrl: "/agents/medical-beauty-consultation-agent#live-demo",
     demoEnabled: true,
     isFeatured: false,
     isVerified: true,
@@ -527,7 +982,7 @@ export const demoAgents: DemoAgent[] = [
     pricingType: "monthly",
     priceUsd: 299,
     priceCny: 2099,
-    demoUrl: "https://demo.example.com/agents/law-firm-intake",
+    demoUrl: "/agents/law-firm-intake-agent#live-demo",
     demoEnabled: true,
     isFeatured: false,
     isVerified: true,
@@ -581,7 +1036,7 @@ export const demoAgents: DemoAgent[] = [
     pricingType: "custom_quote",
     priceUsd: 1500,
     priceCny: 10800,
-    demoUrl: "https://demo.example.com/agents/internal-knowledge-base",
+    demoUrl: "/agents/internal-knowledge-base-agent#live-demo",
     demoEnabled: true,
     isFeatured: true,
     isVerified: true,
@@ -634,7 +1089,7 @@ export const demoAgents: DemoAgent[] = [
     pricingType: "monthly",
     priceUsd: 149,
     priceCny: 999,
-    demoUrl: "https://demo.example.com/agents/ai-news-monitoring",
+    demoUrl: "/agents/ai-news-monitoring-agent#live-demo",
     demoEnabled: true,
     isFeatured: true,
     isVerified: true,
@@ -686,7 +1141,7 @@ export const demoAgents: DemoAgent[] = [
     pricingType: "one_time",
     priceUsd: 79,
     priceCny: 499,
-    demoUrl: "https://demo.example.com/agents/youtube-video-summary",
+    demoUrl: "/agents/youtube-video-summary-agent#live-demo",
     demoEnabled: true,
     isFeatured: false,
     isVerified: true,
@@ -739,7 +1194,7 @@ export const demoAgents: DemoAgent[] = [
     pricingType: "one_time",
     priceUsd: 129,
     priceCny: 899,
-    demoUrl: "https://demo.example.com/agents/resume-career-coach",
+    demoUrl: "/agents/resume-career-coach-agent#live-demo",
     demoEnabled: true,
     isFeatured: false,
     isVerified: true,
@@ -793,7 +1248,7 @@ export const demoAgents: DemoAgent[] = [
     pricingType: "one_time",
     priceUsd: 399,
     priceCny: 2799,
-    demoUrl: "https://demo.example.com/agents/local-service-business",
+    demoUrl: "/agents/local-service-business-agent#live-demo",
     demoEnabled: true,
     isFeatured: false,
     isVerified: true,

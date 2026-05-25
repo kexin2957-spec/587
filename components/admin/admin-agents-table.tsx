@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { AdminStatusBadge } from "@/components/admin/admin-status-badge";
 import { useTranslation } from "@/components/i18n/language-provider";
-import type { AgentStatus, DeliveryType, PricingType } from "@/lib/marketplace/constants";
+import {
+  PRICING_TYPES,
+  type AgentStatus,
+  type DeliveryType,
+  type PricingType,
+} from "@/lib/marketplace/constants";
 
 type AdminAgentRecord = {
   admin_note?: string | null;
@@ -35,6 +40,16 @@ type AdminAgentsResponse = {
   ok?: boolean;
 };
 
+type AgentContentDraft = {
+  priceCny: string;
+  priceUsd: string;
+  pricingType: PricingType;
+  shortDescriptionEn: string;
+  shortDescriptionZh: string;
+  titleEn: string;
+  titleZh: string;
+};
+
 const deliveryLabels: Record<DeliveryType, string> = {
   custom_business_agent: "marketplace.customBusinessAgent",
   hosted_agent: "marketplace.hostedAgent",
@@ -50,6 +65,7 @@ export function AdminAgentsTable() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, AgentContentDraft>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
 
   async function fetchRecords() {
@@ -87,7 +103,14 @@ export function AdminAgentsTable() {
       feedback?: string;
       is_featured?: boolean;
       is_verified?: boolean;
+      price_cny?: number | null;
+      price_usd?: number | null;
+      pricing_type?: PricingType;
+      short_description_en?: string;
+      short_description_zh?: string;
       status?: AgentStatus;
+      title_en?: string;
+      title_zh?: string;
     },
   ) {
     setActionError("");
@@ -194,6 +217,7 @@ export function AdminAgentsTable() {
           const title =
             language === "zh" ? agent.title_zh || agent.title_en : agent.title_en || agent.title_zh;
           const noteValue = notes[agent.id] ?? agent.review_feedback ?? "";
+          const contentDraft = getAgentContentDraft(agent, drafts[agent.id]);
 
           return (
             <article
@@ -297,6 +321,114 @@ export function AdminAgentsTable() {
                     </p>
                   ) : null}
                 </div>
+                <div className="mt-5 grid gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-950">
+                      Product content and pricing
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-slate-600">
+                      Edit public marketplace copy and price-from fields. Private runtime prompts and workflows are not exposed here.
+                    </p>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <DraftInput
+                      label="English title"
+                      value={contentDraft.titleEn}
+                      onChange={(value) =>
+                        setDrafts((current) => ({
+                          ...current,
+                          [agent.id]: { ...contentDraft, titleEn: value },
+                        }))
+                      }
+                    />
+                    <DraftInput
+                      label="Chinese title"
+                      value={contentDraft.titleZh}
+                      onChange={(value) =>
+                        setDrafts((current) => ({
+                          ...current,
+                          [agent.id]: { ...contentDraft, titleZh: value },
+                        }))
+                      }
+                    />
+                    <DraftInput
+                      label="USD price from"
+                      value={contentDraft.priceUsd}
+                      onChange={(value) =>
+                        setDrafts((current) => ({
+                          ...current,
+                          [agent.id]: { ...contentDraft, priceUsd: value },
+                        }))
+                      }
+                    />
+                    <DraftInput
+                      label="CNY price from"
+                      value={contentDraft.priceCny}
+                      onChange={(value) =>
+                        setDrafts((current) => ({
+                          ...current,
+                          [agent.id]: { ...contentDraft, priceCny: value },
+                        }))
+                      }
+                    />
+                    <DraftSelect
+                      label="Pricing type"
+                      value={contentDraft.pricingType}
+                      onChange={(value) =>
+                        setDrafts((current) => ({
+                          ...current,
+                          [agent.id]: {
+                            ...contentDraft,
+                            pricingType: value as PricingType,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <DraftTextarea
+                    label="English one-line value"
+                    value={contentDraft.shortDescriptionEn}
+                    onChange={(value) =>
+                      setDrafts((current) => ({
+                        ...current,
+                        [agent.id]: {
+                          ...contentDraft,
+                          shortDescriptionEn: value,
+                        },
+                      }))
+                    }
+                  />
+                  <DraftTextarea
+                    label="Chinese one-line value"
+                    value={contentDraft.shortDescriptionZh}
+                    onChange={(value) =>
+                      setDrafts((current) => ({
+                        ...current,
+                        [agent.id]: {
+                          ...contentDraft,
+                          shortDescriptionZh: value,
+                        },
+                      }))
+                    }
+                  />
+                  <button
+                    className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-600"
+                    onClick={() =>
+                      void updateAgent(agent, {
+                        price_cny: parseOptionalNumber(contentDraft.priceCny),
+                        price_usd: parseOptionalNumber(contentDraft.priceUsd),
+                        pricing_type: contentDraft.pricingType,
+                        short_description_en: contentDraft.shortDescriptionEn,
+                        short_description_zh: contentDraft.shortDescriptionZh,
+                        title_en: contentDraft.titleEn,
+                        title_zh: contentDraft.titleZh,
+                      })
+                    }
+                    type="button"
+                  >
+                    Save product content
+                  </button>
+                </div>
               </details>
 
               <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
@@ -377,6 +509,112 @@ export function AdminAgentsTable() {
         })}
       </div>
     </div>
+  );
+}
+
+function getAgentContentDraft(
+  agent: AdminAgentRecord,
+  draft?: AgentContentDraft,
+): AgentContentDraft {
+  if (draft) {
+    return draft;
+  }
+
+  return {
+    priceCny: agent.price_cny?.toString() ?? "",
+    priceUsd: agent.price_usd?.toString() ?? "",
+    pricingType: agent.pricing_type,
+    shortDescriptionEn: agent.short_description_en,
+    shortDescriptionZh: agent.short_description_zh,
+    titleEn: agent.title_en,
+    titleZh: agent.title_zh,
+  };
+}
+
+function parseOptionalNumber(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = Number(trimmed);
+
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function DraftInput({
+  label,
+  onChange,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <label className="grid gap-1">
+      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
+      <input
+        className="polished-input px-3 py-2 text-sm text-slate-950"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      />
+    </label>
+  );
+}
+
+function DraftSelect({
+  label,
+  onChange,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  value: PricingType;
+}) {
+  return (
+    <label className="grid gap-1">
+      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
+      <select
+        className="polished-input px-3 py-2 text-sm text-slate-950"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        {PRICING_TYPES.map((pricingType) => (
+          <option key={pricingType} value={pricingType}>
+            {pricingType}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function DraftTextarea({
+  label,
+  onChange,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <label className="grid gap-1">
+      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
+      <textarea
+        className="polished-input min-h-20 px-3 py-2 text-sm text-slate-950"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      />
+    </label>
   );
 }
 

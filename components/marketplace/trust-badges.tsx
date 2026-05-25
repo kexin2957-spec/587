@@ -7,12 +7,20 @@ import type { DemoAgent } from "@/lib/marketplace/demo-data";
 export type TrustBadgeType =
   | "businessReady"
   | "dataPrivacyNotice"
+  | "englishChineseSupport"
+  | "leadCapture"
+  | "leadCaptureReady"
+  | "licenseProtected"
   | "liveDemoAvailable"
+  | "platformHosted"
   | "platformReviewed"
+  | "productFaq"
   | "refundPolicy"
   | "secureCheckout"
   | "setupSupportAvailable"
-  | "verifiedAgent";
+  | "verifiedAgent"
+  | "websiteEmbed"
+  | "websiteEmbedReady";
 
 const trustBadgeConfig: Record<
   TrustBadgeType,
@@ -20,8 +28,14 @@ const trustBadgeConfig: Record<
 > = {
   businessReady: { labelKey: "common.businessReady", tone: "amber" },
   dataPrivacyNotice: { labelKey: "common.dataPrivacyNotice", tone: "blue" },
+  englishChineseSupport: { labelKey: "common.englishChineseSupport", tone: "slate" },
+  leadCapture: { labelKey: "common.leadCapture", tone: "cyan" },
+  leadCaptureReady: { labelKey: "common.leadCaptureReady", tone: "cyan" },
+  licenseProtected: { labelKey: "common.licenseProtected", tone: "blue" },
   liveDemoAvailable: { labelKey: "common.liveDemoAvailable", tone: "cyan" },
+  platformHosted: { labelKey: "common.platformHosted", tone: "emerald" },
   platformReviewed: { labelKey: "common.platformReviewed", tone: "blue" },
+  productFaq: { labelKey: "common.productFaq", tone: "emerald" },
   refundPolicy: { labelKey: "common.refundPolicy", tone: "slate" },
   secureCheckout: { labelKey: "common.secureCheckout", tone: "emerald" },
   setupSupportAvailable: {
@@ -29,28 +43,40 @@ const trustBadgeConfig: Record<
     tone: "emerald",
   },
   verifiedAgent: { labelKey: "common.verifiedAgent", tone: "slate" },
+  websiteEmbed: { labelKey: "common.websiteEmbed", tone: "blue" },
+  websiteEmbedReady: { labelKey: "common.websiteEmbedReady", tone: "blue" },
 };
 
 export const coreTrustBadges: TrustBadgeType[] = [
-  "verifiedAgent",
-  "platformReviewed",
-  "businessReady",
-  "liveDemoAvailable",
+  "platformHosted",
+  "licenseProtected",
+  "websiteEmbedReady",
+  "leadCaptureReady",
   "setupSupportAvailable",
-  "dataPrivacyNotice",
-  "secureCheckout",
-  "refundPolicy",
+  "englishChineseSupport",
 ];
 
 export function getAgentTrustBadgeTypes(agent: DemoAgent): TrustBadgeType[] {
+  const launchSpecificBadges: TrustBadgeType[] =
+    agent.slug === "ecommerce-product-support-agent"
+      ? ["websiteEmbed", "productFaq"]
+      : agent.slug === "website-customer-support-agent"
+        ? ["websiteEmbed", "leadCapture"]
+        : [];
+
   return [
     ...(agent.isVerified ? (["verifiedAgent"] as const) : []),
+    "platformHosted",
+    "licenseProtected",
     "platformReviewed",
     "businessReady",
     ...(agent.demoEnabled ? (["liveDemoAvailable"] as const) : []),
+    ...launchSpecificBadges,
+    "websiteEmbedReady",
+    "leadCaptureReady",
     "setupSupportAvailable",
+    "englishChineseSupport",
     "dataPrivacyNotice",
-    "secureCheckout",
     "refundPolicy",
   ];
 }

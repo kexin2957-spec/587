@@ -28,6 +28,7 @@ const initialFormState = {
   price_cny: "",
   price_usd: "",
   pricing_type: "" as PricingType | "",
+  rights_confirmed: false,
   screenshot_urls: "",
   seller_email: "",
   setup_instructions_en: "",
@@ -67,11 +68,21 @@ export function SellerUploadForm() {
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"draft" | "submitted">(
+    "submitted",
+  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     setIsSubmitted(false);
+    const nativeEvent = event.nativeEvent as SubmitEvent;
+    const nextSubmitStatus =
+      nativeEvent.submitter instanceof HTMLButtonElement &&
+      nativeEvent.submitter.dataset.status === "draft"
+        ? "draft"
+        : "submitted";
+    setSubmitStatus(nextSubmitStatus);
 
     const nextErrors = validateForm(formState, t);
     setErrors(nextErrors);
@@ -84,7 +95,7 @@ export function SellerUploadForm() {
 
     try {
       const response = await fetch("/api/seller-agents", {
-        body: JSON.stringify(toPayload(formState)),
+        body: JSON.stringify(toPayload(formState, nextSubmitStatus)),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -107,7 +118,7 @@ export function SellerUploadForm() {
   }
 
   function updateField(
-    name: Exclude<keyof FormState, "demo_enabled" | "supported_languages">,
+    name: Exclude<keyof FormState, "demo_enabled" | "rights_confirmed" | "supported_languages">,
     value: string,
   ) {
     setFormState((current) => ({ ...current, [name]: value }));
@@ -504,13 +515,63 @@ export function SellerUploadForm() {
         <span className="mt-1 block">{t("seller.reviewRequiredDescription")}</span>
       </div>
 
-      <button
-        className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-slate-950/20 hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
-        disabled={isSubmitting}
-        type="submit"
-      >
-        {isSubmitting ? t("seller.submitting") : t("seller.submitForReview")}
-      </button>
+      <label className="rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+        <span className="flex items-start gap-3">
+          <input
+            checked={formState.rights_confirmed}
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-700"
+            data-testid="seller-upload-rights-confirmed"
+            onChange={(event) => {
+              setFormState((current) => ({
+                ...current,
+                rights_confirmed: event.target.checked,
+              }));
+              setErrors((current) => ({ ...current, rights_confirmed: undefined }));
+            }}
+            type="checkbox"
+          />
+          <span>
+            <span className="block font-semibold text-slate-800">
+              I confirm this agent is original or I have the rights to sell it.
+            </span>
+            <span className="mt-1 block text-slate-600">
+              我确认该 Agent 为原创或我拥有售卖授权。
+            </span>
+            {errors.rights_confirmed ? (
+              <span className="mt-1 block text-xs font-medium text-red-600">
+                {errors.rights_confirmed}
+              </span>
+            ) : null}
+          </span>
+        </span>
+      </label>
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <button
+          className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 sm:w-fit"
+          data-status="draft"
+          disabled={isSubmitting}
+          onClick={() => setSubmitStatus("draft")}
+          type="submit"
+        >
+          {isSubmitting && submitStatus === "draft"
+            ? t("seller.submitting")
+            : language === "zh"
+              ? "保存草稿"
+              : "Save draft"}
+        </button>
+        <button
+          className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-slate-950/20 hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+          data-status="submitted"
+          disabled={isSubmitting}
+          onClick={() => setSubmitStatus("submitted")}
+          type="submit"
+        >
+          {isSubmitting && submitStatus === "submitted"
+            ? t("seller.submitting")
+            : t("seller.submitForReview")}
+        </button>
+      </div>
     </form>
   );
 }
@@ -545,9 +606,9 @@ function TextField({
   error?: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   label: string;
-  name: Exclude<keyof FormState, "demo_enabled" | "supported_languages">;
+    name: Exclude<keyof FormState, "demo_enabled" | "rights_confirmed" | "supported_languages">;
   onChange: (
-    name: Exclude<keyof FormState, "demo_enabled" | "supported_languages">,
+    name: Exclude<keyof FormState, "demo_enabled" | "rights_confirmed" | "supported_languages">,
     value: string,
   ) => void;
   required?: boolean;
@@ -582,9 +643,9 @@ function TextArea({
 }: {
   error?: string;
   label: string;
-  name: Exclude<keyof FormState, "demo_enabled" | "supported_languages">;
+  name: Exclude<keyof FormState, "demo_enabled" | "rights_confirmed" | "supported_languages">;
   onChange: (
-    name: Exclude<keyof FormState, "demo_enabled" | "supported_languages">,
+    name: Exclude<keyof FormState, "demo_enabled" | "rights_confirmed" | "supported_languages">,
     value: string,
   ) => void;
   value: string;
@@ -604,7 +665,7 @@ function TextArea({
   );
 }
 
-function toPayload(formState: FormState) {
+function toPayload(formState: FormState, status: "draft" | "submitted") {
   return {
     ...formState,
     faq_en: parseFaq(formState.faq_en),
@@ -614,6 +675,7 @@ function toPayload(formState: FormState) {
     price_cny: parsePrice(formState.price_cny),
     price_usd: parsePrice(formState.price_usd),
     screenshot_urls: parseLines(formState.screenshot_urls),
+    status,
     tags: parseLines(formState.tags),
   };
 }
@@ -698,6 +760,11 @@ function validateForm(
 
   if (!formState.version.trim()) {
     nextErrors.version = t("seller.validationRequired");
+  }
+
+  if (!formState.rights_confirmed) {
+    nextErrors.rights_confirmed =
+      "Confirm this agent is original or you have the rights to sell it.";
   }
 
   return nextErrors;

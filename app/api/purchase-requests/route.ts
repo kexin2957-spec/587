@@ -6,7 +6,9 @@ import {
   type MockPurchaseRequestRecord,
 } from "@/lib/server/marketplace-admin-store";
 import { requireAdminForConfiguredSupabase } from "@/lib/auth/server";
+import { writeRequestAuditLog } from "@/lib/server/audit-log";
 import { notifyAdminNewPurchaseRequest } from "@/lib/server/notification-service";
+import { enforceRateLimit, rateLimits } from "@/lib/server/rate-limit";
 import {
   PURCHASE_REQUEST_STATUSES,
   type PurchaseRequestStatus,
@@ -77,6 +79,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const rateLimitResponse = enforceRateLimit(request, rateLimits.customRequest);
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const payload = (await request.json()) as PurchaseRequestPayload;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -211,6 +219,13 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    await writeRequestAuditLog(request, {
+      action: "purchase_request.update",
+      metadata: { status: payload.status ?? null },
+      resourceId: payload.id,
+      resourceType: "purchase_request",
+    });
+
     return NextResponse.json({ data, mode: "supabase", ok: true });
   }
 
@@ -234,6 +249,13 @@ export async function PATCH(request: Request) {
   }
 
   purchaseRequest.updated_at = new Date().toISOString();
+
+  await writeRequestAuditLog(request, {
+    action: "purchase_request.update",
+    metadata: { status: payload.status ?? null },
+    resourceId: purchaseRequest.id,
+    resourceType: "purchase_request",
+  });
 
   return NextResponse.json({ data: purchaseRequest, mode: "mock", ok: true });
 }

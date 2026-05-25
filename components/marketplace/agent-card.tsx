@@ -6,6 +6,7 @@ import { AgentCover } from "@/components/marketplace/agent-cover";
 import { Badge } from "@/components/marketplace/badge";
 import { getAgentMetadata } from "@/lib/marketplace/agent-metadata";
 import { demoCategories, type DemoAgent } from "@/lib/marketplace/demo-data";
+import { getAgentOrderPlans } from "@/lib/marketplace/order-plans";
 import {
   formatPrice,
   formatSupportedLanguages,
@@ -22,6 +23,8 @@ type AgentCardProps = {
 export function AgentCard({ agent, variant = "compact" }: AgentCardProps) {
   const { language, t } = useTranslation();
   const localizedAgent = getLocalizedAgent(agent, language);
+  const buyNowLabel = language === "zh" ? "立即购买" : "Buy Now";
+  const priceFromLabel = language === "zh" ? "价格起" : "Price from";
   const metadata = getAgentMetadata(agent);
   const category = demoCategories.find((item) => item.slug === agent.categorySlug);
   const categoryLabel = category
@@ -36,6 +39,15 @@ export function AgentCard({ agent, variant = "compact" }: AgentCardProps) {
     metadata.ownerType === "platform"
       ? t("marketplace.platform")
       : metadata.creatorName || t("marketplace.seller");
+  const hasCustomVersion = getAgentOrderPlans(agent).some(
+    (plan) => plan.id === "custom_version",
+  );
+  const demoHref =
+    agent.slug === "website-customer-support-agent"
+      ? "/demo/website-customer-support-agent"
+      : agent.slug === "ecommerce-product-support-agent"
+        ? "/embed/agents/ecommerce-product-support-agent"
+      : `/agents/${agent.slug}#live-demo`;
 
   return (
     <article
@@ -55,12 +67,9 @@ export function AgentCard({ agent, variant = "compact" }: AgentCardProps) {
       </Link>
 
       <div className="flex flex-1 flex-col px-1 pb-1 pt-4">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Badge tone="blue">{categoryLabel}</Badge>
-          {agent.isFeatured ? (
-            <Badge tone="emerald">{t("common.featured")}</Badge>
-          ) : null}
-        </div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-700">
+          {categoryLabel}
+        </p>
 
         <h2 className="text-lg font-semibold leading-snug text-slate-950">
           <Link href={`/agents/${agent.slug}`} className="hover:text-blue-800">
@@ -84,11 +93,16 @@ export function AgentCard({ agent, variant = "compact" }: AgentCardProps) {
         <div className="mt-5 flex items-start justify-between gap-4 border-t border-slate-100 pt-4">
           <div>
             <p className="text-xs font-semibold uppercase text-slate-500">
-              {t("marketplace.price")}
+              {priceFromLabel}
             </p>
             <p className="mt-1 text-lg font-semibold text-slate-950">
               {formatPrice(agent, language)}
             </p>
+            {hasCustomVersion ? (
+              <p className="mt-1 text-xs font-semibold text-blue-700">
+                {t("common.customVersionAvailable")}
+              </p>
+            ) : null}
           </div>
           <div className="text-right">
             <p className="text-xs font-semibold uppercase text-slate-500">
@@ -124,21 +138,27 @@ export function AgentCard({ agent, variant = "compact" }: AgentCardProps) {
           </dl>
         ) : null}
 
-        <div className="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
+        <div className="mt-auto grid gap-2 pt-5 sm:grid-cols-3">
           {agent.demoEnabled ? (
             <a
-              href={agent.demoUrl}
+              href={demoHref}
               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-center text-sm font-semibold text-slate-950 shadow-sm hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
             >
               {t("agentDetail.tryDemo")}
             </a>
           ) : null}
           <Link
+            href={`/agents/${agent.slug}#buy`}
+            className="rounded-xl bg-blue-700 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm shadow-blue-950/20 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+          >
+            {buyNowLabel}
+          </Link>
+          <Link
             href={`/agents/${agent.slug}`}
             className={
               agent.demoEnabled
                 ? "rounded-xl bg-slate-950 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm shadow-slate-950/20 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2"
-                : "rounded-xl bg-slate-950 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm shadow-slate-950/20 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 sm:col-span-2"
+                : "rounded-xl bg-slate-950 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm shadow-slate-950/20 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2"
             }
           >
             {t("common.viewDetails")}

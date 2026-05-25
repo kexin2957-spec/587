@@ -9,7 +9,12 @@ import { AgentCard } from "@/components/marketplace/agent-card";
 import { MarketplaceFilters } from "@/components/marketplace/marketplace-filters";
 import { SearchBar } from "@/components/marketplace/search-bar";
 import { SortDropdown } from "@/components/marketplace/sort-dropdown";
-import { demoAgents, demoCategories, type DemoAgent } from "@/lib/marketplace/demo-data";
+import {
+  demoAgents,
+  demoCategories,
+  launchAgentSlugs,
+  type DemoAgent,
+} from "@/lib/marketplace/demo-data";
 import {
   defaultMarketplaceFilters,
   filterAgents,
@@ -19,8 +24,10 @@ import {
   type SortOption,
 } from "@/lib/marketplace/browse";
 
+const launchAgentSlugSet = new Set<string>(launchAgentSlugs);
+
 export function MarketplaceBrowser() {
-  const { t } = useTranslation();
+  const { language, t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
@@ -40,8 +47,9 @@ export function MarketplaceBrowser() {
   });
 
   const visibleAgents = useMemo(() => {
+    const launchAgents = agents.filter((agent) => launchAgentSlugSet.has(agent.slug));
     const filteredAgents = filterAgents({
-      agents,
+      agents: launchAgents,
       categories: demoCategories,
       filters,
       query,
@@ -89,6 +97,30 @@ export function MarketplaceBrowser() {
       title={t("marketplace.title")}
       description={t("marketplace.description")}
     >
+      <div className="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/10 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div>
+          <p className="text-sm font-semibold text-blue-200">
+            {language === "zh" ? "上线产品目录" : "Launch-ready catalog"}
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+            {language === "zh"
+              ? "先从两个已标准化的业务 Agent 开始。"
+              : "Start with two standardized business agents."}
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+            {language === "zh"
+              ? "每个产品都包含在线 Demo、明确价格、交付说明、购买方案和定制升级入口。"
+              : "Each product includes a live demo, clear pricing, delivery expectations, purchase plans, and a custom upgrade path."}
+          </p>
+        </div>
+        <Link
+          href="/custom-service"
+          className="rounded-xl bg-white px-4 py-3 text-center text-sm font-semibold text-slate-950 shadow-sm hover:bg-slate-100"
+        >
+          {t("marketplace.requestCustomAgent")}
+        </Link>
+      </div>
+
       <div className="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-white/76 p-3 shadow-sm shadow-slate-950/[0.03] lg:grid-cols-[1fr_220px]">
         <SearchBar
           value={query}

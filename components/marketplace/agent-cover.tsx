@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { DeliveryType } from "@/lib/marketplace/constants";
 import type { DemoAgent } from "@/lib/marketplace/demo-data";
 
@@ -157,6 +158,26 @@ export function AgentCover({
   deliveryLabel,
   title,
 }: AgentCoverProps) {
+  if (agent.slug === "website-customer-support-agent") {
+    return (
+      <PhotoAgentCover
+        className={className}
+        imageSrc="/agents/website-customer-support-agent-cover.png"
+        title={title}
+      />
+    );
+  }
+
+  if (agent.slug === "ecommerce-product-support-agent") {
+    return (
+      <PhotoAgentCover
+        className={className}
+        imageSrc="/agents/ecommerce-product-support-agent-cover.png"
+        title={title}
+      />
+    );
+  }
+
   const theme = coverThemes[agent.categorySlug] ?? defaultTheme;
   const initials = getInitials(title);
 
@@ -215,6 +236,33 @@ export function AgentCover({
           </span>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PhotoAgentCover({
+  className,
+  imageSrc,
+  title,
+}: {
+  className: string;
+  imageSrc: string;
+  title: string;
+}) {
+  return (
+    <div
+      aria-label={`${title} cover image`}
+      className={`relative aspect-video overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-inner shadow-white ${className}`}
+      data-testid="agent-cover"
+      role="img"
+    >
+      <Image
+        alt={`${title} real usage screen`}
+        className="object-cover"
+        fill
+        sizes="(max-width: 768px) 100vw, 520px"
+        src={imageSrc}
+      />
     </div>
   );
 }

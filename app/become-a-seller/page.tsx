@@ -28,7 +28,21 @@ const revenueShareKeys = [
 ];
 
 export default function BecomeSellerPage() {
-  const { t } = useTranslation();
+  const { language, t } = useTranslation();
+  const earlyAccessItems =
+    language === "zh"
+      ? [
+          "Apply to sell agents / 申请销售 Agent",
+          "Platform review required / 平台审核后才公开",
+          "Revenue share model / 收入分成模式",
+          "Coming soon / early access / 即将开放，当前为早期申请",
+        ]
+      : [
+          "Apply to sell agents",
+          "Platform review required",
+          "Revenue share model",
+          "Coming soon / early access",
+        ];
 
   return (
     <div>
@@ -54,7 +68,10 @@ export default function BecomeSellerPage() {
             </div>
           </div>
           <div className="premium-card p-5">
-            <h2 className="text-lg font-semibold text-slate-950">
+            <p className="w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+              {language === "zh" ? "早期申请" : "Early access"}
+            </p>
+            <h2 className="mt-4 text-lg font-semibold text-slate-950">
               {t("seller.reviewGuardTitle")}
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
@@ -65,6 +82,31 @@ export default function BecomeSellerPage() {
       </section>
 
       <main className="app-container py-14">
+        <section className="mb-14 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                {language === "zh" ? "创作者早期申请" : "Seller early access"}
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+                {language === "zh"
+                  ? "今天先开放申请，不把创作者计划作为主销售入口。"
+                  : "Today this is an application path, not the main buyer flow."}
+              </h2>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[520px]">
+              {earlyAccessItems.map((item) => (
+                <div
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800"
+                  key={item}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <SectionHeading
           description={t("seller.howItWorksDescription")}
           title={t("seller.howItWorksTitle")}

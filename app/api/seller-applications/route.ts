@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminForConfiguredSupabase } from "@/lib/auth/server";
-import { getMockSellerApplicationStore } from "@/lib/server/marketplace-admin-store";
+import {
+  getMockSellerApplicationStore,
+  getMockSellerProfileStore,
+} from "@/lib/server/marketplace-admin-store";
+import { writeRequestAuditLog } from "@/lib/server/audit-log";
+import { enforceRateLimit, rateLimits } from "@/lib/server/rate-limit";
 import {
   SELLER_APPLICATION_STATUSES,
   type SellerApplicationStatus,
+  type SellerStatus,
 } from "@/lib/marketplace/constants";
 
 type SellerApplicationPayload = {
@@ -29,10 +35,35 @@ type MockSellerApplication = {
   offers_custom_services: boolean;
   payout_preference: string | null;
   planned_agent_types: string;
-  status: "submitted";
+  status: SellerApplicationStatus;
   team_name: string | null;
   updated_at: string;
   website: string | null;
+};
+
+type SellerApplicationRecord = MockSellerApplication & {
+  admin_note?: string | null;
+};
+
+type SellerProfileSyncClient = {
+  from: (table: "seller_profiles") => {
+    insert: (value: Record<string, unknown>) => Promise<{
+      error: { message: string } | null;
+    }>;
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        limit: (count: number) => Promise<{
+          data: Array<{ id?: string }> | null;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+    update: (value: Record<string, unknown>) => {
+      eq: (column: string, value: string) => Promise<{
+        error: { message: string } | null;
+      }>;
+    };
+  };
 };
 
 export const dynamic = "force-dynamic";
@@ -74,6 +105,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const rateLimitResponse = enforceRateLimit(request, rateLimits.customRequest);
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const payload = (await request.json()) as SellerApplicationPayload;
   const validationError = validatePayload(payload);
 
@@ -175,6 +212,22 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    const profileError = await syncSupabaseSellerProfileFromApplication(
+      supabase as unknown as SellerProfileSyncClient,
+      data as SellerApplicationRecord,
+    );
+
+    if (profileError) {
+      return NextResponse.json({ error: profileError }, { status: 500 });
+    }
+
+    await writeRequestAuditLog(request, {
+      action: "seller_application.review",
+      metadata: { status: payload.status ?? null },
+      resourceId: payload.id,
+      resourceType: "seller_application",
+    });
+
     return NextResponse.json({ data, mode: "supabase", ok: true });
   }
 
@@ -204,9 +257,119 @@ export async function PATCH(request: Request) {
     application.admin_note = payload.admin_note.trim() || null;
   }
 
+  syncMockSellerProfileFromApplication(application);
   application.updated_at = new Date().toISOString();
 
+  await writeRequestAuditLog(request, {
+    action: "seller_application.review",
+    metadata: { status: payload.status ?? null },
+    resourceId: application.id,
+    resourceType: "seller_application",
+  });
+
   return NextResponse.json({ data: application, mode: "mock", ok: true });
+}
+
+async function syncSupabaseSellerProfileFromApplication(
+  supabase: SellerProfileSyncClient,
+  application: SellerApplicationRecord,
+) {
+  const sellerStatus = sellerStatusFromApplicationStatus(application.status);
+
+  if (!sellerStatus) {
+    return null;
+  }
+
+  const profilePayload = {
+    display_name: application.name,
+    email: application.email,
+    expertise: application.expertise,
+    offers_custom_services: application.offers_custom_services,
+    payout_preference: application.payout_preference,
+    status: sellerStatus,
+    team_name: application.team_name,
+    website: application.website,
+  };
+
+  const { data: existingProfiles, error: lookupError } = await supabase
+    .from("seller_profiles")
+    .select("id")
+    .eq("email", application.email)
+    .limit(1);
+
+  if (lookupError) {
+    return lookupError.message;
+  }
+
+  const existingProfile = existingProfiles?.[0] as { id?: string } | undefined;
+
+  if (existingProfile?.id) {
+    const { error } = await supabase
+      .from("seller_profiles")
+      .update(profilePayload)
+      .eq("id", existingProfile.id);
+
+    return error?.message ?? null;
+  }
+
+  const { error } = await supabase.from("seller_profiles").insert(profilePayload);
+
+  return error?.message ?? null;
+}
+
+function syncMockSellerProfileFromApplication(application: SellerApplicationRecord) {
+  const sellerStatus = sellerStatusFromApplicationStatus(application.status);
+
+  if (!sellerStatus) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const profiles = getMockSellerProfileStore();
+  const existingProfile = profiles.find(
+    (profile) => profile.email.toLowerCase() === application.email.toLowerCase(),
+  );
+
+  if (existingProfile) {
+    existingProfile.display_name = application.name;
+    existingProfile.expertise = application.expertise;
+    existingProfile.offers_custom_services = application.offers_custom_services;
+    existingProfile.payout_preference = application.payout_preference;
+    existingProfile.status = sellerStatus;
+    existingProfile.team_name = application.team_name;
+    existingProfile.updated_at = now;
+    existingProfile.website = application.website;
+    return;
+  }
+
+  profiles.push({
+    created_at: now,
+    display_name: application.name,
+    email: application.email,
+    expertise: application.expertise,
+    id: crypto.randomUUID(),
+    offers_custom_services: application.offers_custom_services,
+    payout_preference: application.payout_preference,
+    status: sellerStatus,
+    team_name: application.team_name,
+    updated_at: now,
+    user_id: null,
+    website: application.website,
+  });
+}
+
+function sellerStatusFromApplicationStatus(
+  status: SellerApplicationStatus,
+): SellerStatus | null {
+  if (status === "approved") {
+    return "approved";
+  }
+
+  if (status === "rejected") {
+    return "rejected";
+  }
+
+  return null;
 }
 
 function normalizePayload(payload: SellerApplicationPayload) {

@@ -10,7 +10,11 @@ import type {
   SupportedLanguage,
 } from "@/lib/marketplace/constants";
 import { SUPPORTED_LANGUAGES } from "@/lib/marketplace/constants";
-import type { DemoAgent, DemoFaqItem } from "@/lib/marketplace/demo-data";
+import {
+  demoAgents,
+  type DemoAgent,
+  type DemoFaqItem,
+} from "@/lib/marketplace/demo-data";
 
 type PublicAgentResult = {
   agents: DemoAgent[];
@@ -175,7 +179,7 @@ function normalizeSupabasePublicAgent(record: SupabasePublicAgentRecord): DemoAg
     record.description_en?.trim() || record.description_zh?.trim() || "";
   const descriptionZh = record.description_zh?.trim() || descriptionEn;
 
-  return {
+  const agent: DemoAgent = {
     categorySlug: category?.slug ?? record.category_id ?? "",
     createdAt: record.created_at ?? undefined,
     creatorName: record.owner_type === "seller" ? "Seller" : undefined,
@@ -209,6 +213,72 @@ function normalizeSupabasePublicAgent(record: SupabasePublicAgentRecord): DemoAg
     tags: toStringArray(record.tags),
     titleEn,
     titleZh,
+  };
+
+  return withStaticProductEnrichment(agent);
+}
+
+function withStaticProductEnrichment(agent: DemoAgent): DemoAgent {
+  const launchProductSlugs = [
+    "website-customer-support-agent",
+    "ecommerce-product-support-agent",
+  ];
+
+  if (!launchProductSlugs.includes(agent.slug)) {
+    return agent;
+  }
+
+  const enrichedAgent = demoAgents.find((item) => item.slug === agent.slug);
+
+  if (!enrichedAgent) {
+    return agent;
+  }
+
+  return {
+    ...agent,
+    categorySlug: enrichedAgent.categorySlug,
+    createdAt: enrichedAgent.createdAt,
+    dataPermissionsEn: enrichedAgent.dataPermissionsEn,
+    dataPermissionsZh: enrichedAgent.dataPermissionsZh,
+    deliveryType: enrichedAgent.deliveryType,
+    descriptionEn: enrichedAgent.descriptionEn,
+    descriptionZh: enrichedAgent.descriptionZh,
+    demoEnabled: enrichedAgent.demoEnabled,
+    demoSamplesEn: enrichedAgent.demoSamplesEn,
+    demoSamplesZh: enrichedAgent.demoSamplesZh,
+    demoUrl: enrichedAgent.demoUrl,
+    faqEn: enrichedAgent.faqEn,
+    faqZh: enrichedAgent.faqZh,
+    featuresEn: enrichedAgent.featuresEn,
+    featuresZh: enrichedAgent.featuresZh,
+    installCount: enrichedAgent.installCount,
+    isFeatured: enrichedAgent.isFeatured,
+    isVerified: enrichedAgent.isVerified,
+    ownerType: enrichedAgent.ownerType,
+    priceCny: enrichedAgent.priceCny,
+    priceUsd: enrichedAgent.priceUsd,
+    pricingOptionsEn: enrichedAgent.pricingOptionsEn,
+    pricingOptionsZh: enrichedAgent.pricingOptionsZh,
+    pricingType: enrichedAgent.pricingType,
+    purchaseCount: enrichedAgent.purchaseCount,
+    rating: enrichedAgent.rating,
+    reviewCount: enrichedAgent.reviewCount,
+    setupInstructionsEn: enrichedAgent.setupInstructionsEn,
+    setupInstructionsZh: enrichedAgent.setupInstructionsZh,
+    shortDescriptionEn: enrichedAgent.shortDescriptionEn,
+    shortDescriptionZh: enrichedAgent.shortDescriptionZh,
+    supportedLanguages: enrichedAgent.supportedLanguages,
+    tags: enrichedAgent.tags,
+    targetCustomersEn: enrichedAgent.targetCustomersEn,
+    targetCustomersZh: enrichedAgent.targetCustomersZh,
+    titleEn: enrichedAgent.titleEn,
+    titleZh: enrichedAgent.titleZh,
+    useCasesEn: enrichedAgent.useCasesEn,
+    useCasesZh: enrichedAgent.useCasesZh,
+    customUpgradeOptionsEn: enrichedAgent.customUpgradeOptionsEn,
+    customUpgradeOptionsZh: enrichedAgent.customUpgradeOptionsZh,
+    coverImageStyleEn: enrichedAgent.coverImageStyleEn,
+    coverImageStyleZh: enrichedAgent.coverImageStyleZh,
   };
 }
 

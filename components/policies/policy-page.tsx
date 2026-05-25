@@ -45,7 +45,7 @@ export function PolicyPage({ slug }: { slug: PolicySlug }) {
         ))}
 
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-900 shadow-sm">
-          <p>{t("policies.placeholderNotice")}</p>
+          <p>{t("policies.reviewNotice")}</p>
           <Link
             className="mt-4 inline-flex rounded-xl bg-blue-700 px-4 py-2 font-semibold text-white shadow-sm shadow-blue-950/20 hover:bg-blue-600"
             href="/custom-service"

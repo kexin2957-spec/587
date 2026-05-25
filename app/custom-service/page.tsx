@@ -34,10 +34,6 @@ const processKeys = [
 
 const pricingKeys = [
   {
-    description: "customService.basicSetupDescription",
-    label: "customService.basicSetup",
-  },
-  {
     description: "customService.businessAgentDescription",
     label: "customService.businessAgent",
   },
@@ -48,7 +44,23 @@ const pricingKeys = [
 ];
 
 export default function CustomServicePage() {
-  const { t } = useTranslation();
+  const { language, t } = useTranslation();
+  const examples =
+    language === "zh"
+      ? [
+          "CRM integration / CRM 集成",
+          "Shopify integration / Shopify 集成",
+          "Calendar booking / 日历预约",
+          "Internal knowledge base / 内部知识库",
+          "Custom workflow / 定制工作流",
+        ]
+      : [
+          "CRM integration",
+          "Shopify integration",
+          "Calendar booking",
+          "Internal knowledge base",
+          "Custom workflow",
+        ];
 
   return (
     <div>
@@ -74,7 +86,12 @@ export default function CustomServicePage() {
             </div>
           </div>
           <div className="premium-card p-5">
-            <h2 className="text-lg font-semibold text-slate-950">
+            <p className="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+              {language === "zh"
+                ? "定制开发 $999 / ¥6999 起"
+                : "Custom development from $999 / ¥6999"}
+            </p>
+            <h2 className="mt-4 text-lg font-semibold text-slate-950">
               {t("customService.heroCardTitle")}
             </h2>
             <div className="mt-5 grid gap-3">
@@ -95,6 +112,29 @@ export default function CustomServicePage() {
       </section>
 
       <main className="app-container py-14">
+        <section className="mb-14 grid gap-4 rounded-2xl border border-slate-200 bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+          <div>
+            <p className="text-sm font-semibold text-blue-200">
+              {language === "zh" ? "适合高价值项目" : "For higher-value projects"}
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+              {language === "zh"
+                ? "当现成 Agent 不够时，定制完整业务流程。"
+                : "When a ready-made agent is not enough, build the workflow around your business."}
+            </h2>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {examples.map((example) => (
+              <div
+                className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-semibold text-white"
+                key={example}
+              >
+                {example}
+              </div>
+            ))}
+          </div>
+        </section>
+
         <SectionHeading
           description={t("customService.useCasesDescription")}
           title={t("customService.useCasesTitle")}

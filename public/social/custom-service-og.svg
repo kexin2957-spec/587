@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Custom AI Agent Development</title>
+  <desc id="desc">Custom AI agent development for CRM, Shopify, calendar booking, knowledge base, APIs, and business workflows.</desc>
+  <rect width="1200" height="630" fill="#f8fafc"/>
+  <rect x="72" y="70" width="1056" height="490" rx="36" fill="#111827"/>
+  <rect x="128" y="130" width="340" height="300" rx="26" fill="#ffffff"/>
+  <rect x="168" y="176" width="210" height="18" rx="9" fill="#2563eb"/>
+  <rect x="168" y="226" width="244" height="18" rx="9" fill="#64748b"/>
+  <rect x="168" y="266" width="190" height="18" rx="9" fill="#94a3b8"/>
+  <rect x="168" y="326" width="140" height="46" rx="14" fill="#111827"/>
+  <rect x="574" y="138" width="420" height="62" rx="22" fill="#eff6ff"/>
+  <rect x="620" y="238" width="360" height="62" rx="22" fill="#ecfdf5"/>
+  <rect x="574" y="338" width="392" height="62" rx="22" fill="#fef3c7"/>
+  <text x="128" y="494" fill="#ffffff" font-family="Arial, sans-serif" font-size="50" font-weight="700">Custom AI Agent Development</text>
+  <text x="128" y="538" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="25">CRM, Shopify, calendar, docs, APIs and workflows</text>
+</svg>

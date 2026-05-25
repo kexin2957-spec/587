@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminForConfiguredSupabase } from "@/lib/auth/server";
 import { getMockCustomRequestStore } from "@/lib/server/marketplace-admin-store";
+import { writeRequestAuditLog } from "@/lib/server/audit-log";
 import { notifyAdminNewCustomRequest } from "@/lib/server/notification-service";
+import { enforceRateLimit, rateLimits } from "@/lib/server/rate-limit";
 import {
   CUSTOM_REQUEST_STATUSES,
   type CustomRequestStatus,
@@ -89,6 +91,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const rateLimitResponse = enforceRateLimit(request, rateLimits.customRequest);
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const payload = (await request.json()) as CustomRequestPayload;
   const validationError = validatePayload(payload);
 
@@ -202,6 +210,13 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    await writeRequestAuditLog(request, {
+      action: "custom_request.update",
+      metadata: { status: payload.status ?? null },
+      resourceId: payload.id,
+      resourceType: "custom_request",
+    });
+
     return NextResponse.json({ data, mode: "supabase", ok: true });
   }
 
@@ -225,6 +240,13 @@ export async function PATCH(request: Request) {
   }
 
   customRequest.updated_at = new Date().toISOString();
+
+  await writeRequestAuditLog(request, {
+    action: "custom_request.update",
+    metadata: { status: payload.status ?? null },
+    resourceId: customRequest.id,
+    resourceType: "custom_request",
+  });
 
   return NextResponse.json({ data: customRequest, mode: "mock", ok: true });
 }

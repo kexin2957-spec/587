@@ -5,6 +5,7 @@ export type PolicySlug =
   | "refund-policy"
   | "review-policy"
   | "seller-guidelines"
+  | "license"
   | "terms";
 
 type LocalizedPolicyContent = {
@@ -23,7 +24,7 @@ export const policyContent: Record<PolicySlug, PolicyContent> = {
     en: {
       title: "Privacy Policy",
       description:
-        "A launch-ready placeholder for how the marketplace handles account, request, and agent usage data.",
+        "A launch-ready draft for how the marketplace handles account, request, and agent usage data.",
       sections: [
         {
           title: "Information we collect",
@@ -40,9 +41,9 @@ export const policyContent: Record<PolicySlug, PolicyContent> = {
           ],
         },
         {
-          title: "Placeholder status",
+          title: "Draft status",
           body: [
-            "This policy is a professional placeholder and should be reviewed by legal counsel before launch.",
+            "This policy is a professional draft and should be reviewed by legal counsel before launch.",
           ],
         },
       ],
@@ -50,7 +51,7 @@ export const policyContent: Record<PolicySlug, PolicyContent> = {
     zh: {
       title: "隐私政策",
       description:
-        "用于说明平台如何处理账号、需求表单、Agent 使用和提交内容的上线前占位政策。",
+        "用于说明平台如何处理账号、需求表单、Agent 使用和提交内容的上线前政策草案。",
       sections: [
         {
           title: "我们收集的信息",
@@ -67,8 +68,8 @@ export const policyContent: Record<PolicySlug, PolicyContent> = {
           ],
         },
         {
-          title: "占位说明",
-          body: ["本政策为专业占位版本，正式上线前应由法律顾问审核。"],
+          title: "草案说明",
+          body: ["本政策为专业草案版本，正式上线前应由法律顾问审核。"],
         },
       ],
     },
@@ -77,7 +78,7 @@ export const policyContent: Record<PolicySlug, PolicyContent> = {
     en: {
       title: "Refund Policy",
       description:
-        "A placeholder refund policy for digital AI agent assets and custom AI agent services.",
+        "A draft refund policy for digital AI agent assets and custom AI agent services.",
       sections: [
         {
           title: "Digital agent and template purchases",
@@ -94,16 +95,16 @@ export const policyContent: Record<PolicySlug, PolicyContent> = {
           ],
         },
         {
-          title: "Placeholder status",
+          title: "Draft status",
           body: [
-            "This refund policy is a placeholder and should be reviewed before public launch or payment activation.",
+            "This refund policy is a draft and should be reviewed before public launch or payment activation.",
           ],
         },
       ],
     },
     zh: {
       title: "退款政策",
-      description: "适用于数字 Agent 资产和定制 AI Agent 服务的退款政策占位版本。",
+      description: "适用于数字 Agent 资产和定制 AI Agent 服务的退款政策草案版本。",
       sections: [
         {
           title: "数字 Agent 与模板购买",
@@ -120,8 +121,8 @@ export const policyContent: Record<PolicySlug, PolicyContent> = {
           ],
         },
         {
-          title: "占位说明",
-          body: ["本退款政策为占位版本，正式上线或启用支付前应完成审核。"],
+          title: "草案说明",
+          body: ["本退款政策为草案版本，正式上线或启用支付前应完成审核。"],
         },
       ],
     },
@@ -240,11 +241,83 @@ export const policyContent: Record<PolicySlug, PolicyContent> = {
       ],
     },
   },
+  license: {
+    en: {
+      title: "Agent License Policy",
+      description:
+        "How hosted AI agent usage licenses work, including domain authorization, resale restrictions, and suspension rules.",
+      sections: [
+        {
+          title: "Usage license, not ownership",
+          body: [
+            "Customers purchase a hosted usage license for the selected AI agent. They do not purchase ownership of the raw source code, private prompts, internal workflows, model configuration, or platform infrastructure.",
+            "Customers receive hosted agent access, embed code, a customer dashboard, license key, and installation documentation.",
+          ],
+        },
+        {
+          title: "Authorized domains",
+          body: [
+            "Each license is limited to the domains approved for that customer, such as example.com or www.example.com.",
+            "Multi-site usage, client resale, or use on additional brands requires an additional license or a custom agreement.",
+          ],
+        },
+        {
+          title: "No resale or redistribution",
+          body: [
+            "Customers may not resell, redistribute, sublicense, copy, reverse engineer, republish, or repackage the hosted agent as their own product.",
+            "Copying embed code to unauthorized domains may cause the widget to show a license error and may be logged as a blocked-domain event.",
+          ],
+        },
+        {
+          title: "Suspension and custom terms",
+          body: [
+            "The platform may suspend or deactivate licenses for abuse, non-payment, unauthorized redistribution, domain misuse, or attempts to bypass license checks.",
+            "Custom projects may include separate contract terms for integrations, data handling, support, and ownership of project-specific deliverables.",
+          ],
+        },
+      ],
+    },
+    zh: {
+      title: "Agent License 政策",
+      description:
+        "说明托管 AI Agent 使用授权、域名限制、禁止转售以及暂停规则。",
+      sections: [
+        {
+          title: "购买的是使用授权，不是所有权",
+          body: [
+            "客户购买的是所选 AI Agent 的托管使用授权，不是原始源代码、私有 Prompt、内部工作流、模型配置或平台基础设施的所有权。",
+            "客户会收到托管 Agent 访问链接、嵌入代码、客户后台、license key 和安装文档。",
+          ],
+        },
+        {
+          title: "授权域名",
+          body: [
+            "每个 license 仅限客户已授权的域名使用，例如 example.com 或 www.example.com。",
+            "多站点使用、为客户转售或在其他品牌网站使用，需要额外 license 或单独定制协议。",
+          ],
+        },
+        {
+          title: "禁止转售和再分发",
+          body: [
+            "客户不得转售、再分发、转授权、复制、逆向工程、重新发布，或将托管 Agent 重新包装成自己的产品。",
+            "如果嵌入代码被复制到未授权域名，widget 会显示 license 错误，并可能记录 blocked-domain 事件。",
+          ],
+        },
+        {
+          title: "暂停和定制条款",
+          body: [
+            "如出现滥用、未付款、未授权分发、域名滥用或试图绕过授权检查，平台可以暂停或停用 license。",
+            "定制项目可根据集成、数据处理、支持和项目专属交付物另行约定合同条款。",
+          ],
+        },
+      ],
+    },
+  },
   terms: {
     en: {
       title: "Terms of Service",
       description:
-        "A concise placeholder for marketplace participation, requests, listings, and custom services.",
+        "A concise draft for marketplace participation, requests, listings, and custom services.",
       sections: [
         {
           title: "Marketplace use",
@@ -261,16 +334,16 @@ export const policyContent: Record<PolicySlug, PolicyContent> = {
           ],
         },
         {
-          title: "Placeholder status",
+          title: "Draft status",
           body: [
-            "These terms are a placeholder and should be reviewed before launch.",
+            "These terms are a draft and should be reviewed before launch.",
           ],
         },
       ],
     },
     zh: {
       title: "服务条款",
-      description: "用于说明商店参与、需求提交、Agent 列表和定制服务的占位条款。",
+      description: "用于说明商店参与、需求提交、Agent 列表和定制服务的条款草案。",
       sections: [
         {
           title: "商店使用",
@@ -287,8 +360,8 @@ export const policyContent: Record<PolicySlug, PolicyContent> = {
           ],
         },
         {
-          title: "占位说明",
-          body: ["本服务条款为占位版本，正式上线前应完成审核。"],
+          title: "草案说明",
+          body: ["本服务条款为草案版本，正式上线前应完成审核。"],
         },
       ],
     },

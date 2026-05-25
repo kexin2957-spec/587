@@ -21,14 +21,14 @@ export async function notifyAdminNewPurchaseRequest(
   request: PurchaseRequestNotification,
 ) {
   void request;
-  // Placeholder for Phase 9. Add Resend, SendGrid, or another provider here.
-  return { ok: true, provider: "placeholder" as const };
+  // Launch stub. Add Resend, SendGrid, or another provider here.
+  return { ok: true, provider: "not_configured" as const };
 }
 
 export async function notifyAdminNewCustomRequest(
   request: CustomRequestNotification,
 ) {
   void request;
-  // Placeholder for Phase 9. Add Resend, SendGrid, or another provider here.
-  return { ok: true, provider: "placeholder" as const };
+  // Launch stub. Add Resend, SendGrid, or another provider here.
+  return { ok: true, provider: "not_configured" as const };
 }

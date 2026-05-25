@@ -6,7 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useSyncExternalStore,
+  useState,
 } from "react";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import {
@@ -23,43 +23,31 @@ type LanguageContextValue = {
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
-const languageListeners = new Set<() => void>();
+const LANGUAGE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+
+function getCookieLanguage() {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const cookie = document.cookie
+    .split("; ")
+    .find((item) => item.startsWith(`${LANGUAGE_STORAGE_KEY}=`));
+
+  return cookie?.split("=")[1] ?? null;
+}
 
 function getClientLanguage(): AppLanguage {
   if (typeof window === "undefined") {
     return DEFAULT_APP_LANGUAGE;
   }
 
+  const savedCookieLanguage = getCookieLanguage();
   const savedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
   const browserLanguage =
     window.navigator.languages?.[0] ?? window.navigator.language;
 
-  return normalizeLanguage(savedLanguage ?? browserLanguage);
-}
-
-function getServerLanguage(): AppLanguage {
-  return DEFAULT_APP_LANGUAGE;
-}
-
-function subscribeToLanguage(listener: () => void) {
-  languageListeners.add(listener);
-
-  function handleStorage(event: StorageEvent) {
-    if (event.key === LANGUAGE_STORAGE_KEY) {
-      listener();
-    }
-  }
-
-  window.addEventListener("storage", handleStorage);
-
-  return () => {
-    languageListeners.delete(listener);
-    window.removeEventListener("storage", handleStorage);
-  };
-}
-
-function emitLanguageChange() {
-  languageListeners.forEach((listener) => listener());
+  return normalizeLanguage(savedCookieLanguage ?? savedLanguage ?? browserLanguage);
 }
 
 function getNestedValue(source: unknown, key: string): string | undefined {
@@ -74,21 +62,43 @@ function getNestedValue(source: unknown, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const language = useSyncExternalStore(
-    subscribeToLanguage,
-    getClientLanguage,
-    getServerLanguage,
-  );
+export function LanguageProvider({
+  children,
+  initialLanguage = DEFAULT_APP_LANGUAGE,
+}: {
+  children: React.ReactNode;
+  initialLanguage?: AppLanguage;
+}) {
+  const [language, setLanguageState] = useState<AppLanguage>(initialLanguage);
+
+  useEffect(() => {
+    const languageSync = window.setTimeout(() => {
+      setLanguageState(getClientLanguage());
+    }, 0);
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key === LANGUAGE_STORAGE_KEY) {
+        setLanguageState(getClientLanguage());
+      }
+    }
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.clearTimeout(languageSync);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  const setLanguage = useCallback((nextLanguage: AppLanguage) => {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
+    document.cookie = `${LANGUAGE_STORAGE_KEY}=${nextLanguage}; path=/; max-age=${LANGUAGE_MAX_AGE_SECONDS}; SameSite=Lax`;
+    setLanguageState(nextLanguage);
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
   }, [language]);
-
-  const setLanguage = useCallback((nextLanguage: AppLanguage) => {
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
-    emitLanguageChange();
-  }, []);
 
   const t = useCallback(
     (key: string) => {

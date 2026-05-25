@@ -55,6 +55,32 @@ export function getLocalizedAgent(agent: DemoAgent, language: AppLanguage) {
     ),
     features: preferLanguageList(language, agent.featuresEn, agent.featuresZh),
     faq: preferLanguageFaq(language, agent.faqEn, agent.faqZh),
+    targetCustomers: preferLanguageList(
+      language,
+      agent.targetCustomersEn,
+      agent.targetCustomersZh,
+    ),
+    useCases: preferLanguageList(language, agent.useCasesEn, agent.useCasesZh),
+    demoSamples: preferLanguageFaq(
+      language,
+      agent.demoSamplesEn,
+      agent.demoSamplesZh,
+    ),
+    pricingOptions: preferLanguageList(
+      language,
+      agent.pricingOptionsEn,
+      agent.pricingOptionsZh,
+    ),
+    customUpgradeOptions: preferLanguageList(
+      language,
+      agent.customUpgradeOptionsEn,
+      agent.customUpgradeOptionsZh,
+    ),
+    coverImageStyle: preferLanguage(
+      language,
+      agent.coverImageStyleEn,
+      agent.coverImageStyleZh,
+    ),
     setupInstructions: preferLanguage(
       language,
       agent.setupInstructionsEn,
@@ -92,21 +118,8 @@ export function formatPrice(agent: DemoAgent, language: AppLanguage) {
     return language === "zh" ? "免费" : "Free";
   }
 
-  const usd = agent.priceUsd
-    ? new Intl.NumberFormat("en-US", {
-        currency: "USD",
-        maximumFractionDigits: 0,
-        style: "currency",
-      }).format(agent.priceUsd)
-    : null;
-
-  const cny = agent.priceCny
-    ? new Intl.NumberFormat("zh-CN", {
-        currency: "CNY",
-        maximumFractionDigits: 0,
-        style: "currency",
-      }).format(agent.priceCny)
-    : null;
+  const usd = agent.priceUsd ? `$${agent.priceUsd.toLocaleString("en-US")}` : null;
+  const cny = agent.priceCny ? `¥${agent.priceCny.toLocaleString("zh-CN")}` : null;
 
   if (language === "zh") {
     return [cny, usd].filter(Boolean).join(" / ");

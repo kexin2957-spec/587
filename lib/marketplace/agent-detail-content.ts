@@ -79,29 +79,77 @@ export function getAgentDetailContent({
   const localizedCategory = category
     ? getLocalizedCategory(category, language)
     : null;
-  const useCases = categoryUseCases[agent.categorySlug] ?? defaultUseCases;
+  const fallbackUseCases = categoryUseCases[agent.categorySlug] ?? defaultUseCases;
+  const targetCustomers =
+    localizedAgent.targetCustomers.length > 0
+      ? localizedAgent.targetCustomers
+      : getDefaultTargetCustomers(
+          language,
+          localizedCategory?.name ?? "AI Agent",
+        );
+  const useCases =
+    localizedAgent.useCases.length > 0
+      ? localizedAgent.useCases
+      : language === "zh"
+        ? fallbackUseCases.zh
+        : fallbackUseCases.en;
+  const demoSamples = localizedAgent.demoSamples;
 
   return {
-    whoFor:
-      language === "zh"
-        ? [
-            `需要${localizedCategory?.name ?? "AI Agent"}能力的企业团队。`,
-            "希望先用现成方案验证流程，再决定是否定制的业务负责人。",
-            "希望减少重复咨询、整理信息或提升响应效率的运营团队。",
-          ]
-        : [
-            `Business teams that need ${localizedCategory?.name ?? "AI agent"} capability quickly.`,
-            "Operators who want to validate a ready-made workflow before commissioning a custom build.",
-            "Teams that need to reduce repetitive questions, collect context, or improve response speed.",
-          ],
-    useCases: language === "zh" ? useCases.zh : useCases.en,
-    demo: getDemoCopy(localizedAgent.title, language),
+    whoFor: targetCustomers,
+    targetCustomers,
+    useCases,
+    demo:
+      demoSamples.length > 0
+        ? getDemoCopyFromSamples(demoSamples, language)
+        : getDemoCopy(localizedAgent.title, language),
+    demoSamples,
+    pricingOptions: localizedAgent.pricingOptions,
+    customUpgradeOptions: localizedAgent.customUpgradeOptions,
+    coverImageStyle: localizedAgent.coverImageStyle,
     version: "1.0.0",
     changelog:
       language === "zh"
-        ? "初始商店版本，包含双语内容、Demo 占位和线索请求流程。"
-        : "Initial marketplace version with bilingual content, demo placeholder, and request flow.",
+        ? "初始商店版本，包含双语内容、Demo 预览和线索请求流程。"
+        : "Initial marketplace version with bilingual content, demo preview, and request flow.",
   };
+}
+
+function getDefaultTargetCustomers(
+  language: AppLanguage,
+  localizedCategoryName: string,
+) {
+  if (language === "zh") {
+    return [
+      `需要${localizedCategoryName}能力的企业团队。`,
+      "希望先用现成方案验证流程，再决定是否定制的业务负责人。",
+      "希望减少重复咨询、整理信息或提升响应效率的运营团队。",
+    ];
+  }
+
+  return [
+    `Business teams that need ${localizedCategoryName} capability quickly.`,
+    "Operators who want to validate a ready-made workflow before commissioning a custom build.",
+    "Teams that need to reduce repetitive questions, collect context, or improve response speed.",
+  ];
+}
+
+function getDemoCopyFromSamples(
+  samples: Array<{ question: string; answer: string }>,
+  language: AppLanguage,
+): LocalizedDemo {
+  const questions = samples.map((sample) => sample.question);
+  const output = samples[0]?.answer ?? "";
+
+  return language === "zh"
+    ? {
+        questions: { en: [], zh: questions },
+        output: { en: "", zh: output },
+      }
+    : {
+        questions: { en: questions, zh: [] },
+        output: { en: output, zh: "" },
+      };
 }
 
 function getDemoCopy(agentTitle: string, language: AppLanguage): LocalizedDemo {
@@ -117,7 +165,7 @@ function getDemoCopy(agentTitle: string, language: AppLanguage): LocalizedDemo {
       },
       output: {
         en: "",
-        zh: `这是一个 Demo 占位回复。${agentTitle} 会先理解你的业务场景，说明可处理的问题，并提示需要准备的资料。正式版本会接入真实知识库、业务规则或工作流。`,
+        zh: `这是一个 Demo 预览回复。${agentTitle} 会先理解你的业务场景，说明可处理的问题，并提示需要准备的资料。正式版本会接入真实知识库、业务规则或工作流。`,
       },
     };
   }
@@ -132,7 +180,7 @@ function getDemoCopy(agentTitle: string, language: AppLanguage): LocalizedDemo {
       zh: [],
     },
     output: {
-      en: `This is a demo placeholder response. ${agentTitle} would first understand your workflow, explain what it can handle, and list the materials needed for setup. A production version can connect to real knowledge, rules, or workflows.`,
+      en: `This is a demo preview response. ${agentTitle} would first understand your workflow, explain what it can handle, and list the materials needed for setup. A production version can connect to real knowledge, rules, or workflows.`,
       zh: "",
     },
   };

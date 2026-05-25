@@ -8,7 +8,11 @@ import {
   coreTrustBadges,
   TrustBadgeList,
 } from "@/components/marketplace/trust-badges";
-import { demoAgents, demoCategories } from "@/lib/marketplace/demo-data";
+import {
+  demoAgents,
+  demoCategories,
+  launchAgentSlugs,
+} from "@/lib/marketplace/demo-data";
 import {
   formatPrice,
   getLocalizedAgent,
@@ -33,40 +37,69 @@ const faqItems = [
 
 export default function Home() {
   const { language, t } = useTranslation();
-  const featuredAgents = [
-    ...demoAgents.filter((agent) => agent.isFeatured),
-    ...demoAgents.filter((agent) => !agent.isFeatured),
-  ].slice(0, 6);
+  const launchAgents = launchAgentSlugs
+    .map((slug) => demoAgents.find((agent) => agent.slug === slug))
+    .filter((agent): agent is (typeof demoAgents)[number] => Boolean(agent));
+  const launchCategorySlugs = new Set(
+    launchAgents.map((agent) => agent.categorySlug),
+  );
+  const heroCopy =
+    language === "zh"
+      ? {
+          description:
+            "无需从零开发，即可拥有网站客服、销售获客、电商客服和定制 AI 工作流。",
+          launchDescription:
+            "先从已经标准化的两个业务 Agent 开始：一个负责网站销售获客，一个负责电商商品咨询与购买意向收集。",
+          launchTitle: "两个可立即上线的 Agent",
+          requestCustomAgent: "定制 AI Agent",
+          title: "购买现成 AI Agent，快速上线你的业务 AI 员工。",
+        }
+      : {
+          description:
+            "Launch website chatbots, lead capture agents, and custom AI workflows without starting from scratch.",
+          launchDescription:
+            "Start with the two standardized launch products: one for website sales and lead capture, one for e-commerce product support and purchase intent.",
+          launchTitle: "Two launch-ready agents",
+          requestCustomAgent: "Request Custom Agent",
+          title: "Buy ready-made AI agents for your business.",
+        };
 
   return (
     <div>
-      <section className="border-b border-slate-200/80 bg-white/80">
-        <div className="app-container grid gap-10 py-14 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-20">
+      <section className="border-b border-slate-200/80 bg-white/88">
+        <div className="app-container grid gap-10 py-14 sm:py-16 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:py-20">
           <div>
             <p className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-800 shadow-sm">
               {t("home.eyebrow")}
             </p>
-            <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-              {t("home.title")}
+            <h1 className="mt-4 max-w-full text-3xl font-semibold leading-tight tracking-tight text-slate-950 sm:max-w-4xl sm:text-5xl lg:text-6xl">
+              {language === "zh" ? (
+                <>
+                  购买现成 AI Agent，
+                  <br />
+                  快速上线你的业务 AI 员工。
+                </>
+              ) : (
+                heroCopy.title
+              )}
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-              {t("home.description")}
+              {heroCopy.description}
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <CtaLink href="/marketplace" variant="primary">
-                {t("home.exploreAgents")}
+            <div className="mt-8 flex">
+              <CtaLink href="/custom-service" variant="primaryLarge">
+                {heroCopy.requestCustomAgent}
               </CtaLink>
-              <CtaLink href="/custom-service" variant="secondary">
-                {t("home.requestCustomAgent")}
-              </CtaLink>
-              <CtaLink href="/become-a-seller" variant="secondary">
-                {t("home.becomeSeller")}
-              </CtaLink>
+            </div>
+            <div className="mt-8 grid gap-3 text-sm sm:grid-cols-3">
+              <HeroSignal value={t("common.verified")} label={t("common.platformReviewed")} />
+              <HeroSignal value={t("common.liveDemoAvailable")} label={t("common.businessReady")} />
+              <HeroSignal value={t("common.websiteEmbed")} label={t("common.leadCapture")} />
             </div>
           </div>
 
           <MarketplacePreview
-            agents={featuredAgents.slice(0, 3)}
+            agents={launchAgents}
             language={language}
             t={t}
           />
@@ -75,16 +108,16 @@ export default function Home() {
 
       <section id="featured-agents" className="app-container py-14">
         <SectionHeading
-          title={t("home.featuredAgents")}
-          description={t("home.featuredAgentsDescription")}
+          title={heroCopy.launchTitle}
+          description={heroCopy.launchDescription}
           action={
             <Link href="/marketplace" className="text-sm font-semibold text-blue-700">
               {t("home.viewAll")}
             </Link>
           }
         />
-        <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {featuredAgents.map((agent) => (
+        <div className="mt-6 grid gap-5 lg:grid-cols-2">
+          {launchAgents.map((agent) => (
             <AgentCard key={agent.slug} agent={agent} />
           ))}
         </div>
@@ -97,24 +130,26 @@ export default function Home() {
             description={t("home.categoriesDescription")}
           />
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {demoCategories.map((category) => {
-              const localizedCategory = getLocalizedCategory(category, language);
+            {demoCategories
+              .filter((category) => launchCategorySlugs.has(category.slug))
+              .map((category) => {
+                const localizedCategory = getLocalizedCategory(category, language);
 
-              return (
-                <Link
-                  key={category.slug}
-                  href={`/marketplace?category=${category.slug}`}
-                  className="soft-card group p-5"
-                >
-                  <h3 className="font-semibold text-slate-950 group-hover:text-blue-800">
-                    {localizedCategory.name}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    {localizedCategory.description}
-                  </p>
-                </Link>
-              );
-            })}
+                return (
+                  <Link
+                    key={category.slug}
+                    href={`/marketplace?category=${category.slug}`}
+                    className="soft-card group p-5"
+                  >
+                    <h3 className="font-semibold text-slate-950 group-hover:text-blue-800">
+                      {localizedCategory.name}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      {localizedCategory.description}
+                    </p>
+                  </Link>
+                );
+              })}
           </div>
         </div>
       </section>
@@ -138,6 +173,8 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <ConversionReadinessSection language={language} />
 
       <section className="border-y border-slate-200/80 bg-white/74">
         <div className="app-container grid gap-5 py-14 lg:grid-cols-2">
@@ -245,6 +282,95 @@ function SectionHeading({
   );
 }
 
+function ConversionReadinessSection({ language }: { language: "en" | "zh" }) {
+  const copy =
+    language === "zh"
+      ? {
+          title: "不确定哪款 Agent 适合你的业务？",
+          description:
+            "先从现成 Agent 快速验证需求；如果需要更深集成、内部知识库或定制流程，再升级到 Custom Version。",
+          cards: [
+            {
+              body: "告诉我们行业、网站、目标和预算，我们会建议从网站销售 Agent、电商 Agent，还是定制项目开始。",
+              cta: "请求定制 AI Agent",
+              href: "/custom-service",
+              title: "Request a custom AI agent",
+            },
+            {
+              body: "提交订单后会确认付款和联系方式，然后交付托管 Agent URL、嵌入代码、客户后台、安装文档和基础支持。",
+              cta: "查看安装文档",
+              href: "/docs/install-website-agent",
+              title: "What happens after purchase",
+            },
+            {
+              body: "托管 Agent 把核心逻辑、授权校验、配置、线索和用量记录放在服务端，比裸 prompt template 更适合真实网站上线。",
+              cta: "浏览 Agent 商店",
+              href: "/marketplace",
+              title: "Why choose hosted agent instead of prompt template",
+            },
+            {
+              body: "不想自己安装？选择 Agent + Setup 或提交支持请求，我们可以协助嵌入、配置 FAQ、测试线索流和检查上线状态。",
+              cta: "Book setup support",
+              href: "/custom-service#custom-request-form",
+              title: "Book setup support",
+            },
+          ],
+        }
+      : {
+          title: "Not sure which agent fits your business?",
+          description:
+            "Start with a ready-made agent to validate demand quickly, then upgrade to Custom Version when you need deeper integrations, private knowledge, or custom workflows.",
+          cards: [
+            {
+              body: "Share your industry, website, goal, and budget. We will help you choose the Website Sales Agent, E-commerce Agent, or a custom project path.",
+              cta: "Request Custom AI Agent",
+              href: "/custom-service",
+              title: "Request a custom AI agent",
+            },
+            {
+              body: "After purchase we confirm payment and contact details, then deliver the hosted URL, embed code, customer dashboard, install docs, and basic support.",
+              cta: "Read install docs",
+              href: "/docs/install-website-agent",
+              title: "What happens after purchase",
+            },
+            {
+              body: "Hosted agents keep core logic, license checks, configuration, lead capture, and usage logs server-side, which is better for real website deployment than raw prompts.",
+              cta: "Explore Agents",
+              href: "/marketplace",
+              title: "Why choose hosted agent instead of prompt template",
+            },
+            {
+              body: "Need help installing? Choose Agent + Setup or submit a support request so we can help embed, configure FAQ, test leads, and check launch readiness.",
+              cta: "Book setup support",
+              href: "/custom-service#custom-request-form",
+              title: "Book setup support",
+            },
+          ],
+        };
+
+  return (
+    <section className="border-y border-slate-200/80 bg-white/76">
+      <div className="app-container py-14">
+        <SectionHeading title={copy.title} description={copy.description} />
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {copy.cards.map((card) => (
+            <article className="soft-card p-5" key={card.title}>
+              <h3 className="text-lg font-semibold text-slate-950">{card.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{card.body}</p>
+              <Link
+                className="mt-5 inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-sm hover:border-blue-300 hover:bg-blue-50"
+                href={card.href}
+              >
+                {card.cta}
+              </Link>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CtaLink({
   href,
   children,
@@ -252,7 +378,7 @@ function CtaLink({
 }: {
   href: string;
   children: ReactNode;
-  variant: "darkSecondary" | "light" | "primary" | "secondary";
+  variant: "darkSecondary" | "light" | "primary" | "primaryLarge" | "secondary";
 }) {
   const variants = {
     darkSecondary:
@@ -261,6 +387,8 @@ function CtaLink({
       "rounded-xl bg-white px-5 py-3 text-center text-sm font-semibold text-slate-950 shadow-sm hover:bg-slate-100",
     primary:
       "rounded-xl bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white shadow-sm shadow-slate-950/20 hover:bg-slate-800",
+    primaryLarge:
+      "rounded-2xl bg-slate-950 px-8 py-4 text-center text-base font-semibold text-white shadow-lg shadow-slate-950/20 transition hover:-translate-y-0.5 hover:bg-slate-800 sm:min-w-64",
     secondary:
       "rounded-xl border border-slate-300 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-950 shadow-sm hover:border-slate-400 hover:bg-slate-50",
   };
@@ -294,6 +422,17 @@ function ConversionPanel({
         {label}
       </Link>
     </article>
+  );
+}
+
+function HeroSignal({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white/86 p-4 shadow-sm">
+      <p className="font-semibold text-slate-950">{value}</p>
+      <p className="mt-1 text-xs font-medium uppercase text-slate-500">
+        {label}
+      </p>
+    </div>
   );
 }
 
