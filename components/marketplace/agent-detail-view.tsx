@@ -215,7 +215,7 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
           />
           <DemoSection agent={agent} detailContent={detailContent} />
           <SampleSection detailContent={detailContent} />
-          <CustomerReceivesSection />
+          <CustomerReceivesSection agent={agent} />
           <DeliveryProcessSection />
           <HostedVsPromptSection />
           <section className="premium-card p-5">
@@ -267,6 +267,7 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
         </main>
 
         <aside className="grid h-fit gap-6">
+          {agent.ownerType === "seller" ? <SellerProfileSection agent={agent} /> : null}
           <section className="premium-card p-5">
             <h2 className="font-semibold text-slate-950">{t("agentDetail.trust")}</h2>
             <TrustBadgeList
@@ -652,8 +653,16 @@ function ContentSection({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-function CustomerReceivesSection() {
+function CustomerReceivesSection({ agent }: { agent: DemoAgent }) {
   const { language } = useTranslation();
+  const sellerItems =
+    language === "zh"
+      ? agent.whatCustomerReceivesZh?.length
+        ? agent.whatCustomerReceivesZh
+        : agent.whatCustomerReceivesEn
+      : agent.whatCustomerReceivesEn?.length
+        ? agent.whatCustomerReceivesEn
+        : agent.whatCustomerReceivesZh;
   const copy =
     language === "zh"
       ? {
@@ -684,13 +693,14 @@ function CustomerReceivesSection() {
             "Optional setup service if the customer wants us to install and configure it",
           ],
         };
+  const items = sellerItems?.length ? sellerItems : copy.items;
 
   return (
     <section className="premium-card p-5" id="delivery">
       <h2 className="text-xl font-semibold text-slate-950">{copy.title}</h2>
       <p className="mt-3 text-sm leading-6 text-slate-600">{copy.description}</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-        {copy.items.map((item) => (
+        {items.map((item) => (
           <li
             className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700"
             key={item}
@@ -797,7 +807,17 @@ function HostedVsPromptSection() {
 
 function StandardLimitationsSection({ agent }: { agent: DemoAgent }) {
   const { language } = useTranslation();
-  const items =
+  const sellerItems =
+    language === "zh"
+      ? agent.limitationsZh?.length
+        ? agent.limitationsZh
+        : agent.limitationsEn
+      : agent.limitationsEn?.length
+        ? agent.limitationsEn
+        : agent.limitationsZh;
+  const items = sellerItems?.length
+    ? sellerItems
+    :
     language === "zh"
       ? [
           "除非升级并明确接入，否则不提供实时 CRM、订单、库存、支付或内部系统查询。",
@@ -923,6 +943,51 @@ function CustomVersionCallout({
       >
         {copy.button}
       </button>
+    </section>
+  );
+}
+
+function SellerProfileSection({ agent }: { agent: DemoAgent }) {
+  const { language, t } = useTranslation();
+  const profile = agent.sellerProfile;
+  const name = profile?.displayName || agent.creatorName || "Seller";
+  const copy =
+    language === "zh"
+      ? {
+          expertise: "专业领域",
+          seller: "创作者",
+          team: "团队",
+          verified: "平台审核后发布",
+          website: "网站",
+        }
+      : {
+          expertise: "Expertise",
+          seller: "Creator",
+          team: "Team",
+          verified: "Published after platform review",
+          website: "Website",
+        };
+
+  return (
+    <section className="premium-card p-5">
+      <h2 className="font-semibold text-slate-950">{copy.seller}</h2>
+      <p className="mt-2 text-lg font-semibold text-slate-950">{name}</p>
+      <p className="mt-1 text-sm leading-6 text-slate-600">{copy.verified}</p>
+      <dl className="mt-4 grid gap-3 text-sm">
+        <InfoItem
+          label={t("marketplace.creator")}
+          value={name}
+        />
+        {profile?.teamName ? (
+          <InfoItem label={copy.team} value={profile.teamName} />
+        ) : null}
+        {profile?.expertise ? (
+          <InfoItem label={copy.expertise} value={profile.expertise} />
+        ) : null}
+        {profile?.website ? (
+          <InfoItem label={copy.website} value={profile.website} />
+        ) : null}
+      </dl>
     </section>
   );
 }

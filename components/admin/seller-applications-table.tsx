@@ -13,8 +13,10 @@ type SellerApplicationRecord = {
   name: string;
   notes: string | null;
   offers_custom_services: boolean;
+  originality_confirmed: boolean;
   payout_preference: string | null;
   planned_agent_types: string;
+  seller_terms_agreed: boolean;
   status: string;
   team_name: string | null;
   website: string | null;
@@ -225,6 +227,12 @@ export function SellerApplicationsTable() {
                 <Field label={t("forms.payoutPreference")}>
                   {record.payout_preference || t("common.notProvided")}
                 </Field>
+                <Field label={language === "zh" ? "条款确认" : "Terms confirmed"}>
+                  {record.seller_terms_agreed ? t("common.yes") : t("common.no")}
+                </Field>
+                <Field label={language === "zh" ? "原创版权确认" : "Rights confirmed"}>
+                  {record.originality_confirmed ? t("common.yes") : t("common.no")}
+                </Field>
                 <Field label={t("admin.tableSubmitted")}>
                   {dateFormatter.format(new Date(record.created_at))}
                 </Field>
@@ -273,6 +281,10 @@ export function SellerApplicationsTable() {
                   <ActionButton
                     label={t("admin.reject")}
                     onClick={() => void updateApplication(record, "rejected")}
+                  />
+                  <ActionButton
+                    label={t("admin.suspend")}
+                    onClick={() => void updateApplication(record, "suspended")}
                   />
                   <ActionButton
                     label={t("admin.saveInternalNote")}

@@ -19,8 +19,10 @@ type SellerApplicationPayload = {
   name?: string;
   notes?: string;
   offers_custom_services?: boolean;
+  originality_confirmed?: boolean;
   payout_preference?: string;
   planned_agent_types?: string;
+  seller_terms_agreed?: boolean;
   team_name?: string;
   website?: string;
 };
@@ -33,8 +35,10 @@ type MockSellerApplication = {
   name: string;
   notes: string | null;
   offers_custom_services: boolean;
+  originality_confirmed: boolean;
   payout_preference: string | null;
   planned_agent_types: string;
+  seller_terms_agreed: boolean;
   status: SellerApplicationStatus;
   team_name: string | null;
   updated_at: string;
@@ -45,23 +49,42 @@ type SellerApplicationRecord = MockSellerApplication & {
   admin_note?: string | null;
 };
 
+type DatabaseError = { message: string } | null;
+
 type SellerProfileSyncClient = {
-  from: (table: "seller_profiles") => {
-    insert: (value: Record<string, unknown>) => Promise<{
-      error: { message: string } | null;
-    }>;
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        limit: (count: number) => Promise<{
-          data: Array<{ id?: string }> | null;
-          error: { message: string } | null;
+  from: {
+    (table: "profiles"): {
+      select: (columns: string) => {
+        eq: (column: string, value: string) => {
+          limit: (count: number) => Promise<{
+            data: Array<{ role?: string | null; user_id?: string | null }> | null;
+            error: DatabaseError;
+          }>;
+        };
+      };
+      update: (value: Record<string, unknown>) => {
+        eq: (column: string, value: string) => Promise<{
+          error: DatabaseError;
         }>;
       };
     };
-    update: (value: Record<string, unknown>) => {
-      eq: (column: string, value: string) => Promise<{
-        error: { message: string } | null;
+    (table: "seller_profiles"): {
+      insert: (value: Record<string, unknown>) => Promise<{
+        error: DatabaseError;
       }>;
+      select: (columns: string) => {
+        eq: (column: string, value: string) => {
+          limit: (count: number) => Promise<{
+            data: Array<{ id?: string }> | null;
+            error: DatabaseError;
+          }>;
+        };
+      };
+      update: (value: Record<string, unknown>) => {
+        eq: (column: string, value: string) => Promise<{
+          error: DatabaseError;
+        }>;
+      };
     };
   };
 };
@@ -83,7 +106,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("seller_applications")
       .select(
-        "id, name, team_name, email, website, expertise, planned_agent_types, offers_custom_services, payout_preference, notes, status, admin_note, created_at, updated_at",
+        "id, name, team_name, email, website, expertise, planned_agent_types, offers_custom_services, payout_preference, notes, seller_terms_agreed, originality_confirmed, status, admin_note, created_at, updated_at",
       )
       .order("created_at", { ascending: false })
       .limit(100);
@@ -204,7 +227,7 @@ export async function PATCH(request: Request) {
       .update(updates)
       .eq("id", payload.id)
       .select(
-        "id, name, team_name, email, website, expertise, planned_agent_types, offers_custom_services, payout_preference, notes, status, admin_note, created_at, updated_at",
+        "id, name, team_name, email, website, expertise, planned_agent_types, offers_custom_services, payout_preference, notes, seller_terms_agreed, originality_confirmed, status, admin_note, created_at, updated_at",
       )
       .single();
 
@@ -280,7 +303,20 @@ async function syncSupabaseSellerProfileFromApplication(
     return null;
   }
 
-  const profilePayload = {
+  const { data: authProfiles, error: authProfileError } = await supabase
+    .from("profiles")
+    .select("user_id, role")
+    .eq("email", application.email)
+    .limit(1);
+
+  if (authProfileError) {
+    return authProfileError.message;
+  }
+
+  const authProfile = authProfiles?.[0] as
+    | { role?: string | null; user_id?: string | null }
+    | undefined;
+  const profilePayload: Record<string, unknown> = {
     display_name: application.name,
     email: application.email,
     expertise: application.expertise,
@@ -290,6 +326,10 @@ async function syncSupabaseSellerProfileFromApplication(
     team_name: application.team_name,
     website: application.website,
   };
+
+  if (authProfile?.user_id) {
+    profilePayload.user_id = authProfile.user_id;
+  }
 
   const { data: existingProfiles, error: lookupError } = await supabase
     .from("seller_profiles")
@@ -309,10 +349,39 @@ async function syncSupabaseSellerProfileFromApplication(
       .update(profilePayload)
       .eq("id", existingProfile.id);
 
-    return error?.message ?? null;
+    if (error) {
+      return error.message;
+    }
+
+    return updateAuthProfileRoleForApprovedSeller(supabase, application, authProfile);
   }
 
   const { error } = await supabase.from("seller_profiles").insert(profilePayload);
+
+  if (error) {
+    return error.message;
+  }
+
+  return updateAuthProfileRoleForApprovedSeller(supabase, application, authProfile);
+}
+
+async function updateAuthProfileRoleForApprovedSeller(
+  supabase: SellerProfileSyncClient,
+  application: SellerApplicationRecord,
+  authProfile: { role?: string | null; user_id?: string | null } | undefined,
+) {
+  if (
+    application.status !== "approved" ||
+    !authProfile?.user_id ||
+    authProfile.role === "admin"
+  ) {
+    return null;
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ role: "seller" })
+    .eq("user_id", authProfile.user_id);
 
   return error?.message ?? null;
 }
@@ -369,6 +438,10 @@ function sellerStatusFromApplicationStatus(
     return "rejected";
   }
 
+  if (status === "suspended") {
+    return "suspended";
+  }
+
   return null;
 }
 
@@ -379,8 +452,10 @@ function normalizePayload(payload: SellerApplicationPayload) {
     name: payload.name?.trim() ?? "",
     notes: payload.notes?.trim() || null,
     offers_custom_services: Boolean(payload.offers_custom_services),
+    originality_confirmed: Boolean(payload.originality_confirmed),
     payout_preference: payload.payout_preference?.trim() || null,
     planned_agent_types: payload.planned_agent_types?.trim() ?? "",
+    seller_terms_agreed: Boolean(payload.seller_terms_agreed),
     team_name: payload.team_name?.trim() || null,
     website: payload.website?.trim() || null,
   };
@@ -401,6 +476,14 @@ function validatePayload(payload: SellerApplicationPayload) {
 
   if (!payload.planned_agent_types?.trim()) {
     return "Planned agent types are required.";
+  }
+
+  if (!payload.seller_terms_agreed) {
+    return "Seller terms agreement is required.";
+  }
+
+  if (!payload.originality_confirmed) {
+    return "Originality and rights confirmation is required.";
   }
 
   return null;

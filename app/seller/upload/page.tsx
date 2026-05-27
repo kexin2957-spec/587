@@ -53,7 +53,10 @@ export default function SellerUploadPage() {
           <p className="mt-3">{t("seller.reviewRequiredDescription")}</p>
           <p className="mt-3">{t(accessNote)}</p>
         </aside>
-        <SellerUploadForm />
+        <SellerUploadForm
+          defaultSellerEmail={user?.email ?? ""}
+          key={user?.email ?? "guest"}
+        />
       </main>
     </div>
   );

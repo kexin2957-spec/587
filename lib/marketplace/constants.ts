@@ -4,8 +4,10 @@ export const AGENT_STATUSES = [
   "in_review",
   "needs_changes",
   "approved",
+  "published",
   "rejected",
   "suspended",
+  "archived",
 ] as const;
 
 export const OWNER_TYPES = ["platform", "seller"] as const;
@@ -22,6 +24,7 @@ export const SELLER_APPLICATION_STATUSES = [
   "in_review",
   "approved",
   "rejected",
+  "suspended",
 ] as const;
 
 export const DELIVERY_TYPES = [
@@ -143,6 +146,7 @@ export const REVENUE_SHARE_RULES = {
 
 export const PAYOUT_STATUSES = [
   "pending",
+  "eligible",
   "processing",
   "paid",
   "cancelled",
@@ -225,6 +229,18 @@ export const REVIEW_STATUSES = ["pending", "approved", "rejected"] as const;
 
 export const SUPPORTED_LANGUAGES = ["en", "zh"] as const;
 
+export const AGENT_REVIEW_REASON_CODES = [
+  "missing_content",
+  "demo_not_working",
+  "exaggerated_claims",
+  "copyright_risk",
+  "unsafe_content",
+  "unclear_delivery",
+  "pricing_issue",
+  "poor_cover",
+  "other",
+] as const;
+
 export type AgentStatus = (typeof AGENT_STATUSES)[number];
 export type OwnerType = (typeof OWNER_TYPES)[number];
 export type SellerStatus = (typeof SELLER_STATUSES)[number];
@@ -256,5 +272,7 @@ export type LeadScore = (typeof LEAD_SCORES)[number];
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+export type AgentReviewReasonCode =
+  (typeof AGENT_REVIEW_REASON_CODES)[number];
 
 export const DEFAULT_SUPPORTED_LANGUAGES: SupportedLanguage[] = ["en", "zh"];

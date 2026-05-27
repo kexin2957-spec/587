@@ -5,168 +5,206 @@ import type { ReactNode } from "react";
 import { useTranslation } from "@/components/i18n/language-provider";
 import { SellerApplicationForm } from "@/components/seller/seller-application-form";
 
-const howItWorksKeys = [
-  "seller.stepApply",
-  "seller.stepUpload",
-  "seller.stepReviewed",
-  "seller.stepSelling",
-  "seller.stepRevenue",
-];
+const copy = {
+  en: {
+    applicationDescription:
+      "Tell us who you are, what you build, how you want to sell, and whether you can support custom service work.",
+    applicationEyebrow: "Seller application",
+    applicationTitle: "Apply before public selling",
+    applyCta: "Apply to become a seller",
+    commission:
+      "The platform takes a commission from paid marketplace and custom-service sales.",
+    customServices:
+      "Approved sellers can offer custom versions, setup help, and business-specific implementation.",
+    description:
+      "Creators can apply to upload AI agents, submit them for platform review, and sell approved listings publicly.",
+    guard:
+      "Unsafe agents, copied work, copyright-infringing assets, deceptive claims, and unlicensed resale are not allowed.",
+    howItWorksDescription:
+      "The seller path is designed around review, safety, ownership, and clear revenue expectations.",
+    howItWorksTitle: "How selling works",
+    publicSelling:
+      "Approved agents can be listed in the public marketplace after admin review.",
+    review:
+      "Every seller and every seller-uploaded agent must pass platform review before public publishing.",
+    reviewTitle: "Review first",
+    stepApply: "Apply as a seller",
+    stepApproved: "Get approved",
+    stepUpload: "Upload an agent",
+    stepReview: "Agent review",
+    stepSell: "Sell publicly",
+    title: "Sell AI agents on the marketplace",
+    uploadAgentCta: "Seller Center",
+    whatCreatorsSellDescription:
+      "Start with reusable agents, then expand into custom services when a buyer needs a tailored version.",
+    whatCreatorsSellTitle: "What creators can sell",
+  },
+  zh: {
+    applicationDescription:
+      "告诉我们你是谁、擅长做什么、准备销售什么类型的 Agent，以及是否可以承接定制服务。",
+    applicationEyebrow: "创作者申请",
+    applicationTitle: "公开售卖前需要先申请",
+    applyCta: "申请成为创作者",
+    commission: "平台会从付费市场销售和定制服务订单中收取佣金。",
+    customServices:
+      "通过审核的创作者可以提供定制版本、部署协助和企业专属实施服务。",
+    description:
+      "创作者可以申请上传 AI Agent，提交平台审核，并在通过后公开销售已批准的 Agent。",
+    guard:
+      "不允许上传不安全、侵权、抄袭、含误导性承诺，或没有销售授权的 Agent。",
+    howItWorksDescription:
+      "创作者流程围绕审核、安全、版权归属和清晰分成预期设计。",
+    howItWorksTitle: "销售流程",
+    publicSelling: "通过审核的 Agent 可以在公开市场展示和销售。",
+    review: "每个创作者和每个上传的 Agent，都需要通过平台审核后才能公开发布。",
+    reviewTitle: "先审核，再发布",
+    stepApply: "提交创作者申请",
+    stepApproved: "平台审核创作者",
+    stepUpload: "上传 Agent",
+    stepReview: "Agent 进入审核",
+    stepSell: "公开销售",
+    title: "在平台销售你的 AI Agent",
+    uploadAgentCta: "进入创作者中心",
+    whatCreatorsSellDescription:
+      "可以先从可复用 Agent 开始，当买家需要定制版本时，再扩展到定制服务。",
+    whatCreatorsSellTitle: "创作者可以销售什么",
+  },
+};
 
-const sellableKeys = [
-  "seller.sellPromptTemplates",
-  "seller.sellWorkflowTemplates",
-  "seller.sellHostedAgents",
-  "seller.sellWebsiteChatbots",
-  "seller.sellCustomBusinessAgents",
-];
+const sellableItems = {
+  en: [
+    "Prompt templates",
+    "Workflow templates",
+    "Hosted agents",
+    "Website chatbots",
+    "Custom business agents",
+  ],
+  zh: [
+    "Prompt 模板",
+    "工作流模板",
+    "托管 Agent",
+    "网站聊天 Agent",
+    "企业定制 Agent",
+  ],
+};
 
-const revenueShareKeys = [
-  "seller.revenueStandard",
-  "seller.revenueReferral",
-  "seller.revenueCustomService",
-];
+const revenueItems = {
+  en: [
+    "Standard marketplace sales: 70% creator / 30% platform",
+    "Creator referral sales: 85% creator / 15% platform",
+    "Custom service orders: 80% provider / 20% platform",
+  ],
+  zh: [
+    "标准市场销售：70% 创作者 / 30% 平台",
+    "创作者推荐销售：85% 创作者 / 15% 平台",
+    "定制服务订单：80% 服务方 / 20% 平台",
+  ],
+};
 
 export default function BecomeSellerPage() {
-  const { language, t } = useTranslation();
-  const earlyAccessItems =
-    language === "zh"
-      ? [
-          "Apply to sell agents / 申请销售 Agent",
-          "Platform review required / 平台审核后才公开",
-          "Revenue share model / 收入分成模式",
-          "Coming soon / early access / 即将开放，当前为早期申请",
-        ]
-      : [
-          "Apply to sell agents",
-          "Platform review required",
-          "Revenue share model",
-          "Coming soon / early access",
-        ];
+  const { language } = useTranslation();
+  const text = copy[language];
+  const steps = [
+    text.stepApply,
+    text.stepApproved,
+    text.stepUpload,
+    text.stepReview,
+    text.stepSell,
+  ];
 
   return (
     <div>
-      <section className="border-b border-slate-200/80 bg-white/82">
+      <section className="border-b border-slate-200/80 bg-white/85">
         <div className="app-container grid gap-8 py-14 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-              {t("seller.eyebrow")}
+              Seller program
             </p>
             <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-              {t("seller.title")}
+              {text.title}
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-              {t("seller.description")}
+              {text.description}
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <CtaLink href="#seller-application-form" variant="primary">
-                {t("seller.applyCta")}
+                {text.applyCta}
               </CtaLink>
-              <CtaLink href="/seller/upload" variant="secondary">
-                {t("seller.uploadAgentCta")}
+              <CtaLink href="/seller" variant="secondary">
+                {text.uploadAgentCta}
               </CtaLink>
             </div>
           </div>
-          <div className="premium-card p-5">
-            <p className="w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-              {language === "zh" ? "早期申请" : "Early access"}
-            </p>
-            <h2 className="mt-4 text-lg font-semibold text-slate-950">
-              {t("seller.reviewGuardTitle")}
+          <aside className="premium-card border-blue-200 bg-blue-50/90 p-5">
+            <h2 className="text-lg font-semibold text-blue-950">
+              {text.reviewTitle}
             </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              {t("seller.reviewGuardDescription")}
-            </p>
-          </div>
+            <div className="mt-4 grid gap-3 text-sm leading-6 text-blue-900">
+              <p>{text.review}</p>
+              <p>{text.publicSelling}</p>
+              <p>{text.commission}</p>
+              <p>{text.customServices}</p>
+              <p className="font-semibold">{text.guard}</p>
+            </div>
+          </aside>
         </div>
       </section>
 
       <main className="app-container py-14">
-        <section className="mb-14 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-                {language === "zh" ? "创作者早期申请" : "Seller early access"}
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-                {language === "zh"
-                  ? "今天先开放申请，不把创作者计划作为主销售入口。"
-                  : "Today this is an application path, not the main buyer flow."}
-              </h2>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[520px]">
-              {earlyAccessItems.map((item) => (
-                <div
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800"
-                  key={item}
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <SectionHeading
-          description={t("seller.howItWorksDescription")}
-          title={t("seller.howItWorksTitle")}
+          description={text.howItWorksDescription}
+          title={text.howItWorksTitle}
         />
         <div className="mt-6 grid gap-4 md:grid-cols-5">
-          {howItWorksKeys.map((key, index) => (
-            <article
-              className="soft-card p-5"
-              key={key}
-            >
+          {steps.map((step, index) => (
+            <article className="soft-card p-5" key={step}>
               <p className="text-sm font-semibold text-blue-700">
                 {String(index + 1).padStart(2, "0")}
               </p>
-              <h3 className="mt-4 font-semibold text-slate-950">{t(key)}</h3>
+              <h3 className="mt-4 font-semibold text-slate-950">{step}</h3>
             </article>
           ))}
         </div>
 
         <section className="mt-14 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
           <SectionHeading
-            description={t("seller.whatCreatorsSellDescription")}
-            title={t("seller.whatCreatorsSellTitle")}
+            description={text.whatCreatorsSellDescription}
+            title={text.whatCreatorsSellTitle}
           />
           <div className="grid gap-3 sm:grid-cols-2">
-            {sellableKeys.map((key) => (
-              <SimpleCard key={key}>{t(key)}</SimpleCard>
+            {sellableItems[language].map((item) => (
+              <SimpleCard key={item}>{item}</SimpleCard>
             ))}
           </div>
         </section>
 
         <section className="mt-14">
           <SectionHeading
-            description={t("seller.revenueShareDescription")}
-            title={t("seller.revenueShareTitle")}
+            description={text.commission}
+            title={language === "zh" ? "佣金与分成" : "Commission and revenue share"}
           />
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {revenueShareKeys.map((key) => (
+            {revenueItems[language].map((item) => (
               <article
                 className="premium-card p-5 text-sm font-semibold leading-6 text-slate-800"
-                key={key}
+                key={item}
               >
-                {t(key)}
+                {item}
               </article>
             ))}
           </div>
-          <p className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-            {t("seller.revenueFutureNote")}
-          </p>
         </section>
 
         <section className="mt-14 grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-              {t("seller.applicationEyebrow")}
+              {text.applicationEyebrow}
             </p>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-              {t("seller.applicationTitle")}
+              {text.applicationTitle}
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-              {t("seller.applicationDescription")}
+              {text.applicationDescription}
             </p>
           </div>
           <SellerApplicationForm />

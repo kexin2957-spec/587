@@ -1,4 +1,5 @@
 import type {
+  AgentReviewReasonCode,
   AgentStatus,
   DeliveryStatus,
   DeliveryType,
@@ -30,34 +31,77 @@ import { demoAgents, demoCategories, type DemoAgent } from "@/lib/marketplace/de
 
 export type AdminAgentRecord = {
   admin_note?: string | null;
+  agent_rights_confirmed?: boolean;
   category_slug: string;
+  content_safety_confirmed?: boolean;
+  cover_image_url?: string | null;
   created_at: string;
+  custom_upgrade_options_en?: string;
+  custom_upgrade_options_zh?: string;
+  data_permissions_en?: string;
+  data_permissions_zh?: string;
+  delivery_settings?: Record<string, unknown>;
   delivery_type: DeliveryType;
+  demo_answers?: string[];
+  demo_enabled?: boolean;
+  demo_questions?: string[];
+  demo_url?: string | null;
+  description_en?: string;
+  description_zh?: string;
+  faq_en?: Array<{ answer: string; question: string }>;
+  faq_zh?: Array<{ answer: string; question: string }>;
+  features_en?: string[];
+  features_zh?: string[];
   id: string;
   is_featured: boolean;
   is_verified: boolean;
+  limitations_en?: string;
+  limitations_zh?: string;
   owner_type: "platform" | "seller";
   price_cny: number | null;
   price_usd: number | null;
+  pricing_plans?: Array<Record<string, unknown>>;
   pricing_type: PricingType;
   review_feedback?: string | null;
+  review_policy_confirmed?: boolean;
+  review_reason_code?: AgentReviewReasonCode | null;
+  sample_conversation?: string;
   seller_email: string | null;
+  setup_instructions_en?: string;
+  setup_instructions_zh?: string;
+  sensitive_disclaimer_confirmed?: boolean;
   short_description_en: string;
   short_description_zh: string;
   slug: string;
   status: AgentStatus;
+  supported_languages?: SupportedLanguage[];
+  suspension_policy_confirmed?: boolean;
+  tags?: string[];
   title_en: string;
   title_zh: string;
   updated_at: string;
+  use_cases_en?: string[];
+  use_cases_zh?: string[];
+  video_url?: string | null;
+  what_customer_receives_en?: string;
+  what_customer_receives_zh?: string;
+  who_it_is_for_en?: string;
+  who_it_is_for_zh?: string;
 };
 
 export type MockSellerAgentRecord = AdminAgentRecord & {
+  agent_rights_confirmed?: boolean;
   changelog_en: string | null;
   changelog_zh: string | null;
+  content_safety_confirmed?: boolean;
+  cover_image_url?: string | null;
   creator_revenue_rate: number;
   data_permissions_en: string;
   data_permissions_zh: string;
+  delivery_settings?: Record<string, unknown>;
   demo_enabled: boolean;
+  demo_answers?: string[];
+  demo_questions?: string[];
   demo_url: string | null;
   description_en: string;
   description_zh: string;
@@ -67,15 +111,30 @@ export type MockSellerAgentRecord = AdminAgentRecord & {
   features_zh: string[];
   owner_type: "seller";
   platform_commission_rate: number;
+  pricing_plans?: Array<Record<string, unknown>>;
   revenue_share_type: RevenueShareType;
+  sample_conversation?: string;
   screenshot_urls: string[];
   seller_email: string;
   setup_instructions_en: string;
   setup_instructions_zh: string;
+  sensitive_disclaimer_confirmed?: boolean;
+  suspension_policy_confirmed?: boolean;
   supported_languages: SupportedLanguage[];
   tags: string[];
+  review_policy_confirmed?: boolean;
   version: string;
   video_url: string | null;
+  what_customer_receives_en?: string;
+  what_customer_receives_zh?: string;
+  who_it_is_for_en?: string;
+  who_it_is_for_zh?: string;
+  limitations_en?: string;
+  limitations_zh?: string;
+  custom_upgrade_options_en?: string;
+  custom_upgrade_options_zh?: string;
+  use_cases_en?: string[];
+  use_cases_zh?: string[];
 };
 
 export type MockSellerProfileRecord = {
@@ -87,6 +146,7 @@ export type MockSellerProfileRecord = {
   offers_custom_services: boolean;
   payout_preference: string | null;
   status: SellerStatus;
+  support_contact?: string | null;
   team_name: string | null;
   updated_at: string;
   user_id: string | null;
@@ -102,8 +162,10 @@ export type MockSellerApplicationRecord = {
   name: string;
   notes: string | null;
   offers_custom_services: boolean;
+  originality_confirmed: boolean;
   payout_preference: string | null;
   planned_agent_types: string;
+  seller_terms_agreed: boolean;
   status: SellerApplicationStatus;
   team_name: string | null;
   updated_at: string;
@@ -193,6 +255,7 @@ export type MockPurchaseRequestRecord = {
 export type MockOrderRecord = {
   agent_id: string;
   agent_slug: string;
+  amount?: number | null;
   amount_cny: number | null;
   amount_usd: number | null;
   billing_interval: BillingInterval;
@@ -206,8 +269,10 @@ export type MockOrderRecord = {
   delivery_status: DeliveryStatus;
   id: string;
   message: string | null;
+  owner_type?: "platform" | "seller";
   order_number: string;
   order_status: OrderStatus;
+  payout_status?: PayoutStatus;
   payment_link_url: string | null;
   payment_method: PaymentMethod;
   payment_reference: string | null;
@@ -216,6 +281,13 @@ export type MockOrderRecord = {
   paypal_order_id: string | null;
   plan_id: OrderPlanId;
   plan_name: string;
+  platform_commission_rate?: number;
+  platform_fee_amount?: number;
+  seller_email?: string | null;
+  seller_id?: string | null;
+  seller_name?: string | null;
+  seller_revenue_amount?: number;
+  seller_revenue_rate?: number;
   next_billing_date: string | null;
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
@@ -420,6 +492,7 @@ type AgentOverride = {
   price_usd?: number | null;
   pricing_type?: PricingType;
   review_feedback?: string | null;
+  review_reason_code?: AgentReviewReasonCode | null;
   short_description_en?: string;
   short_description_zh?: string;
   status?: AgentStatus;
@@ -672,9 +745,13 @@ export function getAdminAgentRecords(): AdminAgentRecord[] {
 export function getPublicAgents(): DemoAgent[] {
   const approvedPlatformAgents = demoAgents
     .map((agent) => applyPlatformOverride(agent))
-    .filter((agent) => getPlatformStatus(agent.slug) === "approved");
+    .filter((agent) => {
+      const status = getPlatformStatus(agent.slug);
+
+      return status === "approved" || status === "published";
+    });
   const approvedSellerAgents = getMockSellerAgentStore()
-    .filter((agent) => agent.status === "approved")
+    .filter((agent) => agent.status === "approved" || agent.status === "published")
     .map(sellerAgentToDemoAgent);
 
   return [...approvedPlatformAgents, ...approvedSellerAgents];
@@ -685,10 +762,22 @@ export function getPublicAgentBySlug(slug: string) {
 }
 
 export function sellerAgentToDemoAgent(agent: MockSellerAgentRecord): DemoAgent {
+  const sellerProfile = getMockSellerProfileStore().find(
+    (profile) => profile.email.toLowerCase() === agent.seller_email.toLowerCase(),
+  );
+  const sellerDisplayName =
+    sellerProfile?.team_name ||
+    sellerProfile?.display_name ||
+    agent.seller_email;
+  const demoSamples = buildDemoSamples(agent.demo_questions, agent.demo_answers);
+
   return {
     categorySlug: agent.category_slug,
+    creatorRevenueRate: agent.creator_revenue_rate,
     dataPermissionsEn: agent.data_permissions_en,
     dataPermissionsZh: agent.data_permissions_zh,
+    demoSamplesEn: demoSamples,
+    demoSamplesZh: demoSamples,
     demoEnabled: agent.demo_enabled,
     demoUrl: agent.demo_url ?? "",
     deliveryType: agent.delivery_type,
@@ -701,13 +790,26 @@ export function sellerAgentToDemoAgent(agent: MockSellerAgentRecord): DemoAgent 
     installCount: 0,
     isFeatured: agent.is_featured,
     isVerified: agent.is_verified,
+    marketplaceAgentId: agent.id,
     ownerType: "seller",
     priceCny: agent.price_cny,
     priceUsd: agent.price_usd,
     pricingType: agent.pricing_type,
+    platformCommissionRate: agent.platform_commission_rate,
     purchaseCount: 0,
     rating: 0,
+    revenueShareType: agent.revenue_share_type,
     reviewCount: 0,
+    sellerEmail: agent.seller_email,
+    sellerId: sellerProfile?.id ?? null,
+    sellerPricingPlans: normalizeSellerPricingPlans(agent.pricing_plans),
+    sellerProfile: {
+      displayName: sellerDisplayName,
+      email: agent.seller_email,
+      expertise: sellerProfile?.expertise ?? null,
+      teamName: sellerProfile?.team_name ?? null,
+      website: sellerProfile?.website ?? null,
+    },
     setupInstructionsEn: agent.setup_instructions_en,
     setupInstructionsZh: agent.setup_instructions_zh,
     shortDescriptionEn: agent.short_description_en,
@@ -718,8 +820,116 @@ export function sellerAgentToDemoAgent(agent: MockSellerAgentRecord): DemoAgent 
     titleEn: agent.title_en,
     titleZh: agent.title_zh,
     createdAt: agent.created_at,
-    creatorName: agent.seller_email,
+    creatorName: sellerDisplayName,
+    customUpgradeOptionsEn: splitMultiline(agent.custom_upgrade_options_en),
+    customUpgradeOptionsZh: splitMultiline(agent.custom_upgrade_options_zh),
+    limitationsEn: splitMultiline(agent.limitations_en),
+    limitationsZh: splitMultiline(agent.limitations_zh),
+    targetCustomersEn: agent.who_it_is_for_en
+      ? [agent.who_it_is_for_en]
+      : undefined,
+    targetCustomersZh: agent.who_it_is_for_zh
+      ? [agent.who_it_is_for_zh]
+      : undefined,
+    useCasesEn: agent.use_cases_en,
+    useCasesZh: agent.use_cases_zh,
+    whatCustomerReceivesEn: splitMultiline(agent.what_customer_receives_en),
+    whatCustomerReceivesZh: splitMultiline(agent.what_customer_receives_zh),
   };
+}
+
+function buildDemoSamples(
+  questions: string[] | undefined,
+  answers: string[] | undefined,
+) {
+  const normalizedQuestions = questions ?? [];
+  const normalizedAnswers = answers ?? [];
+
+  return normalizedQuestions
+    .map((question, index) => ({
+      answer: normalizedAnswers[index] ?? "",
+      question,
+    }))
+    .filter((sample) => sample.question && sample.answer);
+}
+
+function normalizeSellerPricingPlans(plans: Array<Record<string, unknown>> | undefined) {
+  if (!Array.isArray(plans)) {
+    return [];
+  }
+
+  return plans
+    .map((plan, index) => {
+      const planId = normalizeOrderPlanId(plan.plan_id, index);
+
+      if (!planId) {
+        return null;
+      }
+
+      return {
+        ctaLabelEn: getString(plan.cta_label_en),
+        ctaLabelZh: getString(plan.cta_label_zh),
+        deliveryTimeEn: getString(plan.delivery_time_en),
+        deliveryTimeZh: getString(plan.delivery_time_zh),
+        includedItemsEn: getStringArray(plan.included_items_en),
+        includedItemsZh: getStringArray(plan.included_items_zh),
+        limitationsEn: splitMultiline(getString(plan.limitations_en)),
+        limitationsZh: splitMultiline(getString(plan.limitations_zh)),
+        planId,
+        priceCny: getNumber(plan.price_cny),
+        priceUsd: getNumber(plan.price_usd),
+        titleEn: getString(plan.title_en),
+        titleZh: getString(plan.title_zh),
+      };
+    })
+    .filter((plan): plan is NonNullable<typeof plan> => Boolean(plan));
+}
+
+function normalizeOrderPlanId(value: unknown, index: number): OrderPlanId | null {
+  const normalized = typeof value === "string" ? value : "";
+  const fallbackIds: OrderPlanId[] = [
+    "agent_only",
+    "agent_setup",
+    "custom_version",
+  ];
+  const allowed = new Set<OrderPlanId>(fallbackIds);
+
+  if (allowed.has(normalized as OrderPlanId)) {
+    return normalized as OrderPlanId;
+  }
+
+  return fallbackIds[index] ?? null;
+}
+
+function splitMultiline(value: string | null | undefined) {
+  return (value ?? "")
+    .split(/\r?\n|;/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean)
+    : [];
+}
+
+function getNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
 }
 
 export function getPlatformAdminAgent(agent: DemoAgent): AdminAgentRecord {
@@ -727,25 +937,62 @@ export function getPlatformAdminAgent(agent: DemoAgent): AdminAgentRecord {
 
   return {
     admin_note: override.admin_note ?? null,
+    agent_rights_confirmed: true,
     category_slug: agent.categorySlug,
+    content_safety_confirmed: true,
+    cover_image_url: null,
     created_at: agent.createdAt ?? "2026-05-01T00:00:00.000Z",
+    custom_upgrade_options_en: agent.customUpgradeOptionsEn?.join("\n") ?? "",
+    custom_upgrade_options_zh: agent.customUpgradeOptionsZh?.join("\n") ?? "",
+    data_permissions_en: agent.dataPermissionsEn,
+    data_permissions_zh: agent.dataPermissionsZh,
+    delivery_settings: {},
     delivery_type: agent.deliveryType,
+    demo_answers: agent.demoSamplesEn?.map((sample) => sample.answer) ?? [],
+    demo_enabled: agent.demoEnabled,
+    demo_questions: agent.demoSamplesEn?.map((sample) => sample.question) ?? [],
+    demo_url: agent.demoUrl,
+    description_en: agent.descriptionEn,
+    description_zh: agent.descriptionZh,
+    faq_en: agent.faqEn,
+    faq_zh: agent.faqZh,
+    features_en: agent.featuresEn,
+    features_zh: agent.featuresZh,
     id: agent.slug,
     is_featured: override.is_featured ?? agent.isFeatured,
     is_verified: override.is_verified ?? agent.isVerified,
+    limitations_en: "",
+    limitations_zh: "",
     owner_type: "platform",
     price_cny: override.price_cny ?? agent.priceCny,
     price_usd: override.price_usd ?? agent.priceUsd,
+    pricing_plans: buildPlatformPricingPlans(agent),
     pricing_type: override.pricing_type ?? agent.pricingType,
     review_feedback: override.review_feedback ?? null,
+    review_policy_confirmed: true,
+    review_reason_code: override.review_reason_code ?? null,
+    sample_conversation: "",
     seller_email: null,
+    setup_instructions_en: agent.setupInstructionsEn,
+    setup_instructions_zh: agent.setupInstructionsZh,
+    sensitive_disclaimer_confirmed: true,
     short_description_en: override.short_description_en ?? agent.shortDescriptionEn,
     short_description_zh: override.short_description_zh ?? agent.shortDescriptionZh,
     slug: agent.slug,
     status: override.status ?? "approved",
+    supported_languages: agent.supportedLanguages ?? ["en", "zh"],
+    suspension_policy_confirmed: true,
+    tags: agent.tags,
     title_en: override.title_en ?? agent.titleEn,
     title_zh: override.title_zh ?? agent.titleZh,
     updated_at: override.updated_at ?? "2026-05-01T00:00:00.000Z",
+    use_cases_en: agent.useCasesEn ?? [],
+    use_cases_zh: agent.useCasesZh ?? [],
+    video_url: null,
+    what_customer_receives_en: "",
+    what_customer_receives_zh: "",
+    who_it_is_for_en: agent.targetCustomersEn?.join("\n") ?? "",
+    who_it_is_for_zh: agent.targetCustomersZh?.join("\n") ?? "",
   };
 }
 
@@ -774,4 +1021,19 @@ function applyPlatformOverride(agent: DemoAgent): DemoAgent {
 
 function getPlatformStatus(slug: string) {
   return getAgentOverrideStore()[slug]?.status ?? "approved";
+}
+
+function buildPlatformPricingPlans(agent: DemoAgent) {
+  const englishOptions = agent.pricingOptionsEn ?? [];
+  const chineseOptions = agent.pricingOptionsZh ?? [];
+
+  return englishOptions.map((option, index) => ({
+    included_items_en: [option],
+    included_items_zh: [chineseOptions[index] ?? option],
+    plan_id: `platform-${index + 1}`,
+    price_cny: agent.priceCny,
+    price_usd: agent.priceUsd,
+    title_en: option,
+    title_zh: chineseOptions[index] ?? option,
+  }));
 }

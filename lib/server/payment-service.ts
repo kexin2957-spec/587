@@ -229,9 +229,13 @@ function getPaymentMetadata(order: MockOrderRecord) {
     agent_slug: order.agent_slug,
     billing_interval: order.billing_interval,
     customer_email: order.customer_email,
+    owner_type: order.owner_type ?? "platform",
     order_number: order.order_number,
     plan_id: order.plan_id,
     plan_name: order.plan_name,
+    platform_fee_amount: order.platform_fee_amount ?? 0,
+    seller_id: order.seller_id ?? null,
+    seller_revenue_amount: order.seller_revenue_amount ?? 0,
   };
 }
 

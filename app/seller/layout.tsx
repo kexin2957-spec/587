@@ -33,9 +33,5 @@ export default async function SellerLayout({
     redirect("/sign-in?next=/seller&reason=auth");
   }
 
-  if (!["seller", "admin"].includes(authState.profile?.role ?? "buyer")) {
-    redirect("/become-a-seller?reason=seller-role-required");
-  }
-
   return children;
 }

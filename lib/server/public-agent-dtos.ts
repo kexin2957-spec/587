@@ -3,6 +3,7 @@ import type { DemoAgent } from "@/lib/marketplace/demo-data";
 export type PublicAgentCardDto = Pick<
   DemoAgent,
   | "categorySlug"
+  | "creatorName"
   | "deliveryType"
   | "demoEnabled"
   | "demoUrl"
@@ -42,15 +43,22 @@ export type PublicAgentDetailDto = PublicAgentCardDto &
     | "featuresZh"
     | "setupInstructionsEn"
     | "setupInstructionsZh"
+    | "limitationsEn"
+    | "limitationsZh"
+    | "sellerProfile"
+    | "sellerPricingPlans"
     | "targetCustomersEn"
     | "targetCustomersZh"
     | "useCasesEn"
     | "useCasesZh"
+    | "whatCustomerReceivesEn"
+    | "whatCustomerReceivesZh"
   >;
 
 export function toPublicAgentCardDto(agent: DemoAgent): PublicAgentCardDto {
   return {
     categorySlug: agent.categorySlug,
+    creatorName: agent.creatorName,
     deliveryType: agent.deliveryType,
     demoEnabled: agent.demoEnabled,
     demoUrl: agent.demoUrl,
@@ -91,10 +99,15 @@ export function toPublicAgentDetailDto(agent: DemoAgent): PublicAgentDetailDto {
     featuresZh: agent.featuresZh,
     setupInstructionsEn: agent.setupInstructionsEn,
     setupInstructionsZh: agent.setupInstructionsZh,
+    limitationsEn: agent.limitationsEn,
+    limitationsZh: agent.limitationsZh,
+    sellerProfile: agent.sellerProfile,
+    sellerPricingPlans: agent.sellerPricingPlans,
     targetCustomersEn: agent.targetCustomersEn,
     targetCustomersZh: agent.targetCustomersZh,
     useCasesEn: agent.useCasesEn,
     useCasesZh: agent.useCasesZh,
+    whatCustomerReceivesEn: agent.whatCustomerReceivesEn,
+    whatCustomerReceivesZh: agent.whatCustomerReceivesZh,
   };
 }
-

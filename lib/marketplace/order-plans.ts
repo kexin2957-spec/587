@@ -1,5 +1,5 @@
 import type { AppLanguage } from "@/lib/i18n/language";
-import type { OrderPlanId } from "@/lib/marketplace/constants";
+import { ORDER_PLAN_IDS, type OrderPlanId } from "@/lib/marketplace/constants";
 import type { DemoAgent } from "@/lib/marketplace/demo-data";
 
 export type AgentOrderPlan = {
@@ -282,6 +282,12 @@ const planOverrides: Record<string, AgentOrderPlan[]> = {
 };
 
 export function getAgentOrderPlans(agent: DemoAgent): AgentOrderPlan[] {
+  const sellerPlans = normalizeSellerPricingPlans(agent);
+
+  if (sellerPlans.length > 0) {
+    return sellerPlans;
+  }
+
   const override = planOverrides[agent.slug];
 
   if (override) {
@@ -348,6 +354,87 @@ export function getAgentOrderPlans(agent: DemoAgent): AgentOrderPlan[] {
       nameZh: "定制版本",
     },
   ];
+}
+
+function normalizeSellerPricingPlans(agent: DemoAgent): AgentOrderPlan[] {
+  if (!agent.sellerPricingPlans?.length) {
+    return [];
+  }
+
+  return agent.sellerPricingPlans
+    .filter((plan) => ORDER_PLAN_IDS.includes(plan.planId))
+    .map((plan) => ({
+      amountCny: plan.priceCny,
+      amountUsd: plan.priceUsd,
+      bestForEn: "Customers choosing this seller-defined package.",
+      bestForZh: "适合选择该创作者方案的客户。",
+      ctaEn: plan.ctaLabelEn || getDefaultPlanCta(plan.planId, "en"),
+      ctaZh: plan.ctaLabelZh || getDefaultPlanCta(plan.planId, "zh"),
+      descriptionEn:
+        plan.titleEn ||
+        plan.titleZh ||
+        getDefaultPlanDescription(plan.planId, "en"),
+      descriptionZh:
+        plan.titleZh ||
+        plan.titleEn ||
+        getDefaultPlanDescription(plan.planId, "zh"),
+      deliveryTimeEn: plan.deliveryTimeEn || "Confirmed after order review.",
+      deliveryTimeZh: plan.deliveryTimeZh || "下单确认后沟通交付时间。",
+      id: plan.planId,
+      includedItemsEn: plan.includedItemsEn?.length
+        ? plan.includedItemsEn
+        : ["Seller-defined deliverables"],
+      includedItemsZh: plan.includedItemsZh?.length
+        ? plan.includedItemsZh
+        : ["创作者定义的交付内容"],
+      limitationsEn: plan.limitationsEn?.length
+        ? plan.limitationsEn
+        : ["Final scope follows the seller's delivery notes and platform review."],
+      limitationsZh: plan.limitationsZh?.length
+        ? plan.limitationsZh
+        : ["最终范围以创作者交付说明和平台审核结果为准。"],
+      nameEn: plan.titleEn || getDefaultPlanName(plan.planId, "en"),
+      nameZh: plan.titleZh || getDefaultPlanName(plan.planId, "zh"),
+    }));
+}
+
+function getDefaultPlanName(planId: OrderPlanId, language: AppLanguage) {
+  const labels: Record<OrderPlanId, { en: string; zh: string }> = {
+    agent_only: { en: "Agent Only", zh: "Agent 本体" },
+    agent_setup: { en: "Agent + Setup", zh: "Agent + 配置安装" },
+    custom_version: { en: "Custom Version", zh: "定制版本" },
+  };
+
+  return labels[planId][language];
+}
+
+function getDefaultPlanCta(planId: OrderPlanId, language: AppLanguage) {
+  const labels: Record<OrderPlanId, { en: string; zh: string }> = {
+    agent_only: { en: "Buy Agent Only", zh: "购买 Agent 本体" },
+    agent_setup: { en: "Order Agent + Setup", zh: "购买并配置安装" },
+    custom_version: { en: "Request Custom Version", zh: "申请定制版本" },
+  };
+
+  return labels[planId][language];
+}
+
+function getDefaultPlanDescription(planId: OrderPlanId, language: AppLanguage) {
+  const labels: Record<OrderPlanId, { en: string; zh: string }> = {
+    agent_only: {
+      en: "Ready-made agent package from this seller.",
+      zh: "该创作者提供的现成 Agent 套件。",
+    },
+    agent_setup: {
+      en: "Agent package with setup support from this seller.",
+      zh: "包含配置支持的 Agent 套件。",
+    },
+    custom_version: {
+      en: "Custom version scoped with the seller.",
+      zh: "与创作者沟通范围后的定制版本。",
+    },
+  };
+
+  return labels[planId][language];
 }
 
 export function localizeOrderPlan(plan: AgentOrderPlan, language: AppLanguage) {

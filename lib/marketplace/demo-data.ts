@@ -1,7 +1,9 @@
 import type {
   DeliveryType,
+  OrderPlanId,
   OwnerType,
   PricingType,
+  RevenueShareType,
   SupportedLanguage,
 } from "@/lib/marketplace/constants";
 
@@ -50,6 +52,7 @@ export type DemoAgent = {
   purchaseCount?: number;
   rating?: number;
   reviewCount?: number;
+  marketplaceAgentId?: string;
   supportedLanguages?: SupportedLanguage[];
   tags?: string[];
   targetCustomersEn?: string[];
@@ -64,6 +67,37 @@ export type DemoAgent = {
   customUpgradeOptionsZh?: string[];
   coverImageStyleEn?: string;
   coverImageStyleZh?: string;
+  creatorRevenueRate?: number;
+  limitationsEn?: string[];
+  limitationsZh?: string[];
+  platformCommissionRate?: number;
+  revenueShareType?: RevenueShareType;
+  sellerEmail?: string;
+  sellerId?: string | null;
+  sellerProfile?: {
+    displayName: string;
+    email?: string;
+    expertise?: string | null;
+    teamName?: string | null;
+    website?: string | null;
+  };
+  sellerPricingPlans?: Array<{
+    ctaLabelEn?: string;
+    ctaLabelZh?: string;
+    deliveryTimeEn?: string;
+    deliveryTimeZh?: string;
+    includedItemsEn?: string[];
+    includedItemsZh?: string[];
+    limitationsEn?: string[];
+    limitationsZh?: string[];
+    planId: OrderPlanId;
+    priceCny: number | null;
+    priceUsd: number | null;
+    titleEn?: string;
+    titleZh?: string;
+  }>;
+  whatCustomerReceivesEn?: string[];
+  whatCustomerReceivesZh?: string[];
 };
 
 export const launchAgentSlugs = [

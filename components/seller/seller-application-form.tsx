@@ -9,27 +9,22 @@ const initialFormState = {
   name: "",
   notes: "",
   offers_custom_services: false,
+  originality_confirmed: false,
   payout_preference: "",
   planned_agent_types: "",
+  seller_terms_agreed: false,
   team_name: "",
   website: "",
 };
 
 type FormState = typeof initialFormState;
-type TextFieldName = Exclude<keyof FormState, "offers_custom_services">;
+type CheckboxFieldName =
+  | "offers_custom_services"
+  | "originality_confirmed"
+  | "seller_terms_agreed";
+type TextFieldName = Exclude<keyof FormState, CheckboxFieldName>;
 
 const requiredFields: TextFieldName[] = ["name", "email", "expertise", "planned_agent_types"];
-
-const fieldLabelKeys: Record<TextFieldName, string> = {
-  email: "forms.email",
-  expertise: "forms.expertise",
-  name: "forms.name",
-  notes: "forms.notes",
-  payout_preference: "forms.payoutPreference",
-  planned_agent_types: "forms.plannedAgentTypes",
-  team_name: "forms.teamName",
-  website: "forms.website",
-};
 
 const textareaFields = new Set<TextFieldName>([
   "expertise",
@@ -37,8 +32,71 @@ const textareaFields = new Set<TextFieldName>([
   "planned_agent_types",
 ]);
 
+const formCopy = {
+  en: {
+    applicationFailed:
+      "We could not submit your seller application. Please try again.",
+    applicationSubmitted:
+      "Your seller application has been submitted. We will review it soon.",
+    copyrightHelp:
+      "You confirm the agents you plan to sell are original, licensed, or otherwise cleared for marketplace sale.",
+    copyrightLabel: "Originality and copyright confirmation",
+    customServicesHelp:
+      "Check this if you can deliver custom versions, setup, or business-specific implementation.",
+    email: "Email",
+    expertise: "Expertise",
+    formDescription:
+      "Seller applications are reviewed before agents can be published publicly.",
+    formTitle: "Seller application form",
+    name: "Name",
+    notes: "Notes",
+    offersCustomServices: "Offer custom services",
+    optional: "(optional)",
+    payoutPreference: "Payout preference",
+    plannedAgentTypes: "Planned agent types",
+    submitApplication: "Submit application",
+    submitting: "Submitting...",
+    teamName: "Team name",
+    termsHelp:
+      "You agree to platform review, commission rules, safety standards, and seller conduct requirements.",
+    termsLabel: "I agree to the seller terms",
+    validationEmail: "Please enter a valid email address.",
+    validationRequired: "This field is required.",
+    website: "Website / portfolio",
+  },
+  zh: {
+    applicationFailed: "创作者申请提交失败，请稍后再试。",
+    applicationSubmitted: "你的创作者申请已经提交，我们会尽快审核。",
+    copyrightHelp:
+      "你确认计划销售的 Agent 为原创、已获得授权，或具备在平台销售所需的合法权利。",
+    copyrightLabel: "原创与版权确认",
+    customServicesHelp:
+      "如果你可以提供定制版本、部署配置或企业实施服务，请勾选此项。",
+    email: "邮箱",
+    expertise: "专业领域",
+    formDescription: "创作者申请需要先审核，通过后才可以公开发布 Agent。",
+    formTitle: "创作者申请表",
+    name: "姓名",
+    notes: "备注",
+    offersCustomServices: "提供定制服务",
+    optional: "（选填）",
+    payoutPreference: "收款偏好",
+    plannedAgentTypes: "计划上传的 Agent 类型",
+    submitApplication: "提交申请",
+    submitting: "提交中...",
+    teamName: "团队名称",
+    termsHelp: "你同意平台审核、佣金规则、安全标准和创作者行为要求。",
+    termsLabel: "我同意创作者条款",
+    validationEmail: "请输入有效邮箱地址。",
+    validationRequired: "请填写此字段。",
+    website: "网站 / 作品集",
+  },
+};
+
 export function SellerApplicationForm() {
-  const { t } = useTranslation();
+  const { language, t: dictionaryT } = useTranslation();
+  const t = (key: string) =>
+    formCopy[language][key as keyof (typeof formCopy)["en"]] ?? dictionaryT(key);
   const [formState, setFormState] = useState<FormState>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>(
     {},
@@ -72,7 +130,7 @@ export function SellerApplicationForm() {
         const result = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        throw new Error(result?.error || t("seller.applicationFailed"));
+        throw new Error(result?.error || t("applicationFailed"));
       }
 
       setFormState(initialFormState);
@@ -80,7 +138,7 @@ export function SellerApplicationForm() {
       setIsSubmitted(true);
     } catch (error) {
       setFormError(
-        error instanceof Error ? error.message : t("seller.applicationFailed"),
+        error instanceof Error ? error.message : t("applicationFailed"),
       );
     } finally {
       setIsSubmitting(false);
@@ -92,6 +150,11 @@ export function SellerApplicationForm() {
     setErrors((current) => ({ ...current, [name]: undefined }));
   }
 
+  function updateCheckbox(name: CheckboxFieldName, value: boolean) {
+    setFormState((current) => ({ ...current, [name]: value }));
+    setErrors((current) => ({ ...current, [name]: undefined }));
+  }
+
   return (
     <form
       id="seller-application-form"
@@ -99,10 +162,10 @@ export function SellerApplicationForm() {
       onSubmit={handleSubmit}
     >
       <h2 className="text-xl font-semibold text-slate-950">
-        {t("seller.formTitle")}
+        {t("formTitle")}
       </h2>
       <p className="mt-2 text-sm leading-6 text-slate-600">
-        {t("seller.formDescription")}
+        {t("formDescription")}
       </p>
 
       {isSubmitted ? (
@@ -110,7 +173,7 @@ export function SellerApplicationForm() {
           data-testid="seller-application-success"
           className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
         >
-          {t("seller.applicationSubmitted")}
+          {t("applicationSubmitted")}
         </div>
       ) : null}
 
@@ -123,7 +186,7 @@ export function SellerApplicationForm() {
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <TextField
           error={errors.name}
-          label={t(fieldLabelKeys.name)}
+          label={t("name")}
           name="name"
           onChange={updateField}
           required
@@ -131,7 +194,7 @@ export function SellerApplicationForm() {
         />
         <TextField
           error={errors.team_name}
-          label={`${t(fieldLabelKeys.team_name)} ${t("forms.optional")}`}
+          label={`${t("teamName")} ${t("optional")}`}
           name="team_name"
           onChange={updateField}
           value={formState.team_name}
@@ -139,7 +202,7 @@ export function SellerApplicationForm() {
         <TextField
           error={errors.email}
           inputMode="email"
-          label={t(fieldLabelKeys.email)}
+          label={t("email")}
           name="email"
           onChange={updateField}
           required
@@ -148,7 +211,7 @@ export function SellerApplicationForm() {
         <TextField
           error={errors.website}
           inputMode="url"
-          label={`${t(fieldLabelKeys.website)} ${t("forms.optional")}`}
+          label={`${t("website")} ${t("optional")}`}
           name="website"
           onChange={updateField}
           value={formState.website}
@@ -158,7 +221,7 @@ export function SellerApplicationForm() {
       <div className="mt-4 grid gap-4">
         <TextField
           error={errors.expertise}
-          label={t(fieldLabelKeys.expertise)}
+          label={t("expertise")}
           name="expertise"
           onChange={updateField}
           required
@@ -166,7 +229,7 @@ export function SellerApplicationForm() {
         />
         <TextField
           error={errors.planned_agent_types}
-          label={t(fieldLabelKeys.planned_agent_types)}
+          label={t("plannedAgentTypes")}
           name="planned_agent_types"
           onChange={updateField}
           required
@@ -179,36 +242,51 @@ export function SellerApplicationForm() {
               className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-700"
               data-testid="seller-application-offers-custom"
               onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  offers_custom_services: event.target.checked,
-                }))
+                updateCheckbox("offers_custom_services", event.target.checked)
               }
               type="checkbox"
             />
             <span>
               <span className="font-medium text-slate-800">
-                {t("forms.offersCustomServices")}
+                {t("offersCustomServices")}
               </span>
               <span className="mt-1 block text-slate-600">
-                {t("seller.customServicesHelp")}
+                {t("customServicesHelp")}
               </span>
             </span>
           </span>
         </label>
         <TextField
           error={errors.payout_preference}
-          label={`${t(fieldLabelKeys.payout_preference)} ${t("forms.optional")}`}
+          label={`${t("payoutPreference")} ${t("optional")}`}
           name="payout_preference"
           onChange={updateField}
           value={formState.payout_preference}
         />
         <TextField
           error={errors.notes}
-          label={`${t(fieldLabelKeys.notes)} ${t("forms.optional")}`}
+          label={`${t("notes")} ${t("optional")}`}
           name="notes"
           onChange={updateField}
           value={formState.notes}
+        />
+        <ConsentCheckbox
+          checked={formState.seller_terms_agreed}
+          description={t("termsHelp")}
+          error={errors.seller_terms_agreed}
+          label={t("termsLabel")}
+          name="seller_terms_agreed"
+          onChange={updateCheckbox}
+          required
+        />
+        <ConsentCheckbox
+          checked={formState.originality_confirmed}
+          description={t("copyrightHelp")}
+          error={errors.originality_confirmed}
+          label={t("copyrightLabel")}
+          name="originality_confirmed"
+          onChange={updateCheckbox}
+          required
         />
       </div>
 
@@ -217,7 +295,7 @@ export function SellerApplicationForm() {
         disabled={isSubmitting}
         type="submit"
       >
-        {isSubmitting ? t("seller.submitting") : t("seller.submitApplication")}
+        {isSubmitting ? t("submitting") : t("submitApplication")}
       </button>
     </form>
   );
@@ -274,6 +352,50 @@ function TextField({
   );
 }
 
+function ConsentCheckbox({
+  checked,
+  description,
+  error,
+  label,
+  name,
+  onChange,
+  required = false,
+}: {
+  checked: boolean;
+  description: string;
+  error?: string;
+  label: string;
+  name: CheckboxFieldName;
+  onChange: (name: CheckboxFieldName, value: boolean) => void;
+  required?: boolean;
+}) {
+  return (
+    <label className="rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+      <span className="flex items-start gap-3">
+        <input
+          checked={checked}
+          className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-700"
+          data-testid={`seller-application-${name}`}
+          onChange={(event) => onChange(name, event.target.checked)}
+          type="checkbox"
+        />
+        <span>
+          <span className="font-medium text-slate-800">
+            {label}
+            {required ? <span className="text-red-600"> *</span> : null}
+          </span>
+          <span className="mt-1 block text-slate-600">{description}</span>
+          {error ? (
+            <span className="mt-1 block text-xs font-medium text-red-600">
+              {error}
+            </span>
+          ) : null}
+        </span>
+      </span>
+    </label>
+  );
+}
+
 function validateForm(
   formState: FormState,
   t: (key: string) => string,
@@ -282,12 +404,20 @@ function validateForm(
 
   for (const field of requiredFields) {
     if (!formState[field].trim()) {
-      nextErrors[field] = t("seller.validationRequired");
+      nextErrors[field] = t("validationRequired");
     }
   }
 
   if (formState.email.trim() && !/^\S+@\S+\.\S+$/.test(formState.email)) {
-    nextErrors.email = t("seller.validationEmail");
+    nextErrors.email = t("validationEmail");
+  }
+
+  if (!formState.seller_terms_agreed) {
+    nextErrors.seller_terms_agreed = t("validationRequired");
+  }
+
+  if (!formState.originality_confirmed) {
+    nextErrors.originality_confirmed = t("validationRequired");
   }
 
   return nextErrors;

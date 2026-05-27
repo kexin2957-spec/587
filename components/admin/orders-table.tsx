@@ -51,6 +51,7 @@ type PaymentRecord = {
 type OrderRecord = {
   agent_id: string;
   agent_slug: string;
+  amount?: number | null;
   amount_cny: number | null;
   amount_usd: number | null;
   billing_interval: "one_time" | "monthly" | "yearly";
@@ -68,8 +69,10 @@ type OrderRecord = {
   message: string | null;
   notes: OrderNoteRecord[];
   next_billing_date: string | null;
+  owner_type?: "platform" | "seller";
   order_number: string;
   order_status: OrderStatus;
+  payout_status?: string | null;
   payment_link_url: string | null;
   payment_method: string;
   payment_proof_url: string | null;
@@ -78,6 +81,13 @@ type OrderRecord = {
   payments?: PaymentRecord[];
   plan_id: string;
   plan_name: string;
+  platform_commission_rate?: number | null;
+  platform_fee_amount?: number | null;
+  seller_email?: string | null;
+  seller_id?: string | null;
+  seller_name?: string | null;
+  seller_revenue_amount?: number | null;
+  seller_revenue_rate?: number | null;
   subscription_status: string;
   updated_at: string;
   website_url: string | null;
@@ -113,7 +123,9 @@ const copy = {
     notePlaceholder: "Add payment, delivery, or follow-up notes.",
     notes: "Internal notes",
     order: "Order",
+    owner: "Ownership",
     payment: "Payment",
+    payout: "Payout",
     refresh: "Refresh",
     saveNote: "Save note",
     updateDelivery: "Update delivery",
@@ -132,7 +144,9 @@ const copy = {
     notePlaceholder: "添加付款、交付或跟进备注。",
     notes: "内部备注",
     order: "订单",
+    owner: "归属",
     payment: "付款",
+    payout: "提现",
     refresh: "刷新",
     saveNote: "保存备注",
     updateDelivery: "更新交付",
@@ -383,7 +397,7 @@ export function OrdersTable({ orderId }: { orderId?: string } = {}) {
                   </div>
                 </div>
 
-                <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-6">
                   <Field label={text.customer}>
                     {record.customer_name} / {record.customer_email}
                   </Field>
@@ -392,6 +406,12 @@ export function OrdersTable({ orderId }: { orderId?: string } = {}) {
                   </Field>
                   <Field label={text.amount}>
                     {formatOrderAmount(record, language)}
+                  </Field>
+                  <Field label={text.owner}>
+                    {formatOwnership(record)}
+                  </Field>
+                  <Field label={text.payout}>
+                    {record.payout_status || "pending"}
                   </Field>
                   <Field label={t("admin.tableSubmitted")}>
                     {dateFormatter.format(new Date(record.created_at))}
@@ -428,6 +448,21 @@ export function OrdersTable({ orderId }: { orderId?: string } = {}) {
                     </Field>
                     <Field label="Billing">
                       {record.billing_interval} / {record.subscription_status}
+                    </Field>
+                    <Field label="Seller">
+                      {record.owner_type === "seller"
+                        ? record.seller_name || record.seller_email || record.seller_id || "Seller"
+                        : "Platform owned"}
+                    </Field>
+                    <Field label="Platform fee">
+                      {formatCurrencyValue(record.platform_fee_amount, record.currency)}
+                    </Field>
+                    <Field label="Seller revenue">
+                      {formatCurrencyValue(record.seller_revenue_amount, record.currency)}
+                    </Field>
+                    <Field label="Commission">
+                      {formatRate(record.platform_commission_rate)} platform /{" "}
+                      {formatRate(record.seller_revenue_rate)} seller
                     </Field>
                     <Field label="Next billing">
                       {record.next_billing_date
@@ -771,11 +806,35 @@ export function OrdersTable({ orderId }: { orderId?: string } = {}) {
 }
 
 function formatOrderAmount(record: OrderRecord, language: "en" | "zh") {
+  if (typeof record.amount === "number") {
+    return formatCurrencyValue(record.amount, record.currency);
+  }
+
   if (record.currency === "CNY" || language === "zh") {
     return record.amount_cny ? `¥${record.amount_cny}` : "定制报价";
   }
 
   return record.amount_usd ? `$${record.amount_usd}` : "Custom quote";
+}
+
+function formatOwnership(record: OrderRecord) {
+  if (record.owner_type === "seller") {
+    return record.seller_name || record.seller_email || "Seller-owned";
+  }
+
+  return "Platform-owned";
+}
+
+function formatCurrencyValue(value: number | null | undefined, currency: "USD" | "CNY") {
+  if (typeof value !== "number") {
+    return currency === "CNY" ? "¥0" : "$0";
+  }
+
+  return currency === "CNY" ? `¥${value}` : `$${value}`;
+}
+
+function formatRate(value: number | null | undefined) {
+  return typeof value === "number" ? `${Math.round(value * 100)}%` : "0%";
 }
 
 function getDeliveryDraft(record: OrderRecord, draft?: DeliveryDraft): DeliveryDraft {

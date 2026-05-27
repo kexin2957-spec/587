@@ -12,7 +12,6 @@ import { SortDropdown } from "@/components/marketplace/sort-dropdown";
 import {
   demoAgents,
   demoCategories,
-  launchAgentSlugs,
   type DemoAgent,
 } from "@/lib/marketplace/demo-data";
 import {
@@ -23,8 +22,6 @@ import {
   type MarketplaceFilterState,
   type SortOption,
 } from "@/lib/marketplace/browse";
-
-const launchAgentSlugSet = new Set<string>(launchAgentSlugs);
 
 export function MarketplaceBrowser() {
   const { language, t } = useTranslation();
@@ -47,9 +44,8 @@ export function MarketplaceBrowser() {
   });
 
   const visibleAgents = useMemo(() => {
-    const launchAgents = agents.filter((agent) => launchAgentSlugSet.has(agent.slug));
     const filteredAgents = filterAgents({
-      agents: launchAgents,
+      agents,
       categories: demoCategories,
       filters,
       query,

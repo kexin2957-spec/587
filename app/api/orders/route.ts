@@ -7,19 +7,25 @@ import {
   ORDER_STATUSES,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
+  REVENUE_SHARE_RULES,
   type DeliveryStatus,
   type OrderPlanId,
   type OrderStatus,
   type PaymentMethod,
   type PaymentStatus,
+  type RevenueShareType,
 } from "@/lib/marketplace/constants";
 import {
   createDefaultCustomerConfig,
   createDefaultFaqItems,
   createDefaultKnowledgeDocuments,
 } from "@/lib/marketplace/customer-config";
-import { demoAgents } from "@/lib/marketplace/demo-data";
-import { getAgentOrderPlans, localizeOrderPlan } from "@/lib/marketplace/order-plans";
+import type { DemoAgent } from "@/lib/marketplace/demo-data";
+import {
+  getAgentOrderPlans,
+  localizeOrderPlan,
+  type AgentOrderPlan,
+} from "@/lib/marketplace/order-plans";
 import { writeRequestAuditLog } from "@/lib/server/audit-log";
 import {
   createCustomerAccessToken,
@@ -40,7 +46,6 @@ import {
   getMockOrderNoteStore,
   getMockOrderStore,
   getMockPaymentStore,
-  getPublicAgentBySlug,
   type MockCustomerAgentConfigRecord,
   type MockCustomerFaqItemRecord,
   type MockKnowledgeDocumentRecord,
@@ -49,6 +54,7 @@ import {
   type MockOrderRecord,
   type MockPaymentRecord,
 } from "@/lib/server/marketplace-admin-store";
+import { loadPublicMarketplaceAgentBySlug } from "@/lib/server/public-agent-service";
 import { enforceRateLimit, rateLimits } from "@/lib/server/rate-limit";
 
 type OrderPayload = {
@@ -152,10 +158,14 @@ export async function POST(request: Request) {
   }
 
   const agentSlug = payload.agent_slug as string;
-  const agent = demoAgents.find((item) => item.slug === agentSlug);
+  const publicAgentResult = await loadPublicMarketplaceAgentBySlug(agentSlug);
+  const agent = publicAgentResult.agent;
 
   if (!agent) {
-    return NextResponse.json({ error: "Agent not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: publicAgentResult.error || "Agent not found." },
+      { status: publicAgentResult.error ? 500 : 404 },
+    );
   }
 
   const plan = getAgentOrderPlans(agent).find((item) => item.id === payload.plan_id);
@@ -166,16 +176,21 @@ export async function POST(request: Request) {
 
   const language = payload.currency === "CNY" ? "zh" : "en";
   const localizedPlan = localizeOrderPlan(plan, language);
+  const currency = payload.currency ?? "USD";
+  const amount = getPlanAmount(plan, currency);
+  const ownership = buildOrderOwnership(agent, plan.id, amount);
   const orderNumber = generateOrderNumber();
   const now = new Date().toISOString();
   const billingDefaults = getBillingDefaults(plan.id);
   const normalizedOrder = {
     agent_slug: agentSlug,
+    amount,
     amount_cny: plan.amountCny,
     amount_usd: plan.amountUsd,
     ...billingDefaults,
+    ...ownership,
     company_name: normalizeNullable(payload.company_name),
-    currency: payload.currency ?? "USD",
+    currency,
     customer_email: payload.customer_email?.trim() ?? "",
     customer_name: payload.customer_name?.trim() ?? "",
     customer_phone: normalizeNullable(payload.customer_phone),
@@ -200,26 +215,19 @@ export async function POST(request: Request) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (supabaseUrl && serviceRoleKey) {
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-    const { data: agentRecord, error: lookupError } = await supabase
-      .from("marketplace_agents")
-      .select("id")
-      .eq("slug", agentSlug)
-      .eq("status", "approved")
-      .single();
-
-    if (lookupError || !agentRecord?.id) {
+    if (!agent.marketplaceAgentId) {
       return NextResponse.json(
         { error: "Agent record not found in Supabase." },
         { status: 404 },
       );
     }
 
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
     const { data: orderRecord, error: orderError } = await supabase
       .from("orders")
       .insert({
         ...normalizedOrder,
-        agent_id: agentRecord.id,
+        agent_id: agent.marketplaceAgentId,
       })
       .select("*")
       .single();
@@ -229,7 +237,7 @@ export async function POST(request: Request) {
     }
 
     const deliveryPackage = createDeliveryPackage({
-      agentId: agentRecord.id,
+      agentId: agent.marketplaceAgentId,
       agentSlug,
       orderId: orderRecord.id,
       orderNumber,
@@ -281,7 +289,7 @@ export async function POST(request: Request) {
     }
 
     const customerConfig = createDefaultCustomerConfig({
-      agentId: agentRecord.id,
+      agentId: agent.marketplaceAgentId,
       agentSlug,
       businessName: normalizedOrder.company_name,
       contactEmail: normalizedOrder.customer_email,
@@ -344,13 +352,13 @@ export async function POST(request: Request) {
 
   const mockOrder: MockOrderRecord = {
     ...normalizedOrder,
-    agent_id: agentSlug,
+    agent_id: agent.marketplaceAgentId ?? agentSlug,
     created_at: now,
     id: crypto.randomUUID(),
     updated_at: now,
   };
   const mockPackage = createDeliveryPackage({
-    agentId: agentSlug,
+    agentId: agent.marketplaceAgentId ?? agentSlug,
     agentSlug,
     orderId: mockOrder.id,
     orderNumber,
@@ -359,7 +367,7 @@ export async function POST(request: Request) {
     websiteUrl: normalizedOrder.website_url,
   });
   const mockConfig = createDefaultCustomerConfig({
-    agentId: agentSlug,
+    agentId: agent.marketplaceAgentId ?? agentSlug,
     agentSlug,
     businessName: normalizedOrder.company_name,
     contactEmail: normalizedOrder.customer_email,
@@ -785,10 +793,6 @@ function validateOrderPayload(payload: OrderPayload) {
     return "Invalid currency.";
   }
 
-  if (!getPublicAgentBySlug(payload.agent_slug)) {
-    return "This agent is not available for public ordering.";
-  }
-
   return "";
 }
 
@@ -824,6 +828,72 @@ function generateOrderNumber() {
   const randomPart = Math.random().toString(36).slice(2, 7).toUpperCase();
 
   return `AAM-${datePart}-${randomPart}`;
+}
+
+function getPlanAmount(plan: AgentOrderPlan, currency: "USD" | "CNY") {
+  return currency === "CNY" ? plan.amountCny ?? 0 : plan.amountUsd ?? 0;
+}
+
+function buildOrderOwnership(
+  agent: DemoAgent,
+  planId: OrderPlanId,
+  amount: number,
+) {
+  const ownerType: "platform" | "seller" =
+    agent.ownerType === "seller" ? "seller" : "platform";
+  const revenueShareType = getRevenueShareType(agent, planId, ownerType);
+  const rule = REVENUE_SHARE_RULES[revenueShareType];
+  const sellerRate =
+    ownerType === "seller"
+      ? revenueShareType === "third_party_standard"
+        ? agent.creatorRevenueRate ?? rule.creatorRate
+        : rule.creatorRate
+      : 0;
+  const platformRate =
+    ownerType === "seller"
+      ? revenueShareType === "third_party_standard"
+        ? agent.platformCommissionRate ?? rule.platformRate
+        : rule.platformRate
+      : 1;
+
+  return {
+    owner_type: ownerType,
+    payout_status: "pending" as const,
+    platform_commission_rate: platformRate,
+    platform_fee_amount: roundCurrency(amount * platformRate),
+    seller_email: ownerType === "seller" ? agent.sellerEmail ?? null : null,
+    seller_id: ownerType === "seller" ? agent.sellerId ?? null : null,
+    seller_name:
+      ownerType === "seller"
+        ? agent.sellerProfile?.displayName ?? agent.creatorName ?? null
+        : null,
+    seller_revenue_amount: roundCurrency(amount * sellerRate),
+    seller_revenue_rate: sellerRate,
+  };
+}
+
+function getRevenueShareType(
+  agent: DemoAgent,
+  planId: OrderPlanId,
+  ownerType: "platform" | "seller",
+): RevenueShareType {
+  if (ownerType === "platform") {
+    return "platform_owned";
+  }
+
+  if (planId === "custom_version") {
+    return "custom_service_order";
+  }
+
+  if (agent.revenueShareType === "creator_referral") {
+    return "creator_referral";
+  }
+
+  return "third_party_standard";
+}
+
+function roundCurrency(value: number) {
+  return Math.round(value * 100) / 100;
 }
 
 function createDeliveryPackage({

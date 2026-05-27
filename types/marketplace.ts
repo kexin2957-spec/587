@@ -106,7 +106,9 @@ export type SellerApplication = {
   offersCustomServices: boolean;
   payoutPreference?: string | null;
   notes?: string | null;
+  originalityConfirmed: boolean;
   status: SellerApplicationStatus;
+  sellerTermsAgreed: boolean;
 };
 
 export type PurchaseRequest = {
