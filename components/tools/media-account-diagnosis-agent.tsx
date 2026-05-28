@@ -123,6 +123,7 @@ class DiagnosisReportRequestError extends Error {
 }
 
 type ParseAccountResponse = {
+  crawledUrl?: string;
   error?: string;
   ok?: boolean;
   parser?: AccountParserResult;
@@ -820,26 +821,106 @@ async function requestGenerationQuota(anonymousDeviceId: string) {
   }
 }
 
-async function requestAccountParsePayload(accountUrl: string, rawText: string) {
+type AccountParsePayload = {
+  accountId?: string;
+  accountName?: string;
+  accountUrl?: string;
+  platform?: string;
+  rawText?: string;
+};
+
+async function requestAccountParsePayload(payload: AccountParsePayload) {
   const response = await fetch("/api/tools/media-account-diagnosis/parse-account", {
-    body: JSON.stringify({
-      accountUrl,
-      rawText,
-    }),
+    body: JSON.stringify(payload),
     headers: { "Content-Type": "application/json" },
     method: "POST",
   });
-  const payload = (await response.json()) as ParseAccountResponse;
+  const result = (await response.json()) as ParseAccountResponse;
 
-  if (!response.ok || !payload.ok || !payload.parser) {
-    throw new Error(payload.error || "暂时无法识别该链接，请手动选择平台。");
+  if (!response.ok || !result.ok || !result.parser) {
+    throw new Error(result.error || "暂时无法识别该链接，请手动选择平台。");
   }
 
-  return payload.parser;
+  return result.parser;
 }
 
 async function requestAccountParse(form: DiagnosisForm) {
-  return requestAccountParsePayload(form.recognition.accountUrl, form.recognition.rawText);
+  const inferredAccountId = form.account.accountId || extractAccountIdFromText(form.account.name);
+  return requestAccountParsePayload({
+    accountId: inferredAccountId,
+    accountName: normalizeAccountNameValue(form.account.name, inferredAccountId),
+    accountUrl: form.recognition.accountUrl,
+    platform: form.account.platform,
+    rawText: form.recognition.rawText,
+  });
+}
+
+function mergeParsedAccountIntoForm(current: DiagnosisForm, parsed: AccountParserResult) {
+  const recognizedContents = parsed.recentPosts.map((post) => ({
+    ...createRecentContent(),
+    body: post.title,
+    comments: post.comments ?? "",
+    likes: post.likes ?? "",
+    saves: post.saves ?? "",
+    title: post.title,
+    views: post.views ?? "",
+  }));
+  const nextRecentContents = recognizedContents.length ? recognizedContents : current.recentContents;
+  const field = parsed.inferredField || inferField([current.account.intro, current.recognition.rawText].join("\n"));
+  const notes = Array.from(
+    new Set(
+      [
+        parsed.platform !== "unknown" ? `已识别平台：${parsed.platformLabel}` : "",
+        parsed.accountId ? `账号ID：${parsed.accountId}` : "",
+        parsed.pageTitle ? `公开页面标题：${parsed.pageTitle}` : "",
+        parsed.pageDescription ? `公开页面简介：${parsed.pageDescription}` : "",
+        parsed.isShortLink ? "短链接：只能判断平台，无法展开读取账号详情。" : "",
+        parsed.normalizedUrl ? `标准化链接：${parsed.normalizedUrl}` : "",
+        field ? `已推断领域：${field}` : "",
+        parsed.contentStyle ? `内容风格：${parsed.contentStyle}` : "",
+        parsed.targetUsers.length ? `可能目标用户：${parsed.targetUsers.join("、")}` : "",
+        recognizedContents.length ? `已识别近期内容：${recognizedContents.length} 条` : "",
+        ...parsed.warnings,
+      ].filter(Boolean),
+    ),
+  );
+
+  return {
+    ...current,
+    account: {
+      ...current.account,
+      accountId: parsed.accountId || current.account.accountId,
+      avgViews: parsed.avgViews || averageViews(nextRecentContents) || current.account.avgViews,
+      field: field || current.account.field,
+      followers: parsed.followers || current.account.followers,
+      intro: parsed.bio || current.account.intro,
+      name: current.account.name || parsed.accountName,
+      platform: current.account.platform || (parsed.platform !== "unknown" ? parsed.platformLabel : ""),
+      targetCustomer: current.account.targetCustomer || parsed.targetUsers.join("、") || current.account.targetCustomer,
+    },
+    recognition: {
+      ...current.recognition,
+      accountUrl: parsed.normalizedUrl || current.recognition.accountUrl,
+      notes,
+      recognizedAt: new Date().toISOString(),
+    },
+    recentContents: nextRecentContents,
+  };
+}
+
+function shouldAutoEnrichBeforeGeneration(targetForm: DiagnosisForm) {
+  const inferredAccountId = targetForm.account.accountId || extractAccountIdFromText(targetForm.account.name);
+  const hasInputToCrawl = Boolean(
+    targetForm.recognition.accountUrl.trim() ||
+      inferredAccountId ||
+      (targetForm.account.platform.trim() && targetForm.account.name.trim()),
+  );
+  const hasEnoughAccountData = Boolean(
+    targetForm.account.intro.trim() &&
+      (targetForm.recognition.rawText.trim() || targetForm.recentContents.some(hasRecentContent)),
+  );
+
+  return hasInputToCrawl && !hasEnoughAccountData;
 }
 
 export function MediaAccountDiagnosisAgent() {
@@ -1013,7 +1094,7 @@ export function MediaAccountDiagnosisAgent() {
     }
 
     try {
-      const parsed = await requestAccountParsePayload(item.url, rawText);
+      const parsed = await requestAccountParsePayload({ accountUrl: item.url, rawText });
       const post = parsed.recentPosts[0];
       const next = {
         title: post?.title || item.title || parsed.pageTitle,
@@ -1261,11 +1342,12 @@ export function MediaAccountDiagnosisAgent() {
     setError("");
     setActiveStep(3);
     try {
+      const enrichedForm = await enrichFormForGeneration(formOverride);
       const { quota, report: nextReport } = await requestDiagnosisReport({
         anonymousDeviceId: anonymousDeviceId || getAnonymousDeviceId(),
         consumeQuota: shouldConsumeQuota,
         focus,
-        form: formOverride,
+        form: enrichedForm,
         plan: planOverride,
       });
       setReport(nextReport);
@@ -1289,6 +1371,22 @@ export function MediaAccountDiagnosisAgent() {
       );
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  async function enrichFormForGeneration(sourceForm: DiagnosisForm) {
+    if (!shouldAutoEnrichBeforeGeneration(sourceForm)) {
+      return sourceForm;
+    }
+
+    try {
+      setToast("正在读取公开主页信息并整理诊断输入...");
+      const parsed = await requestAccountParse(sourceForm);
+      const nextForm = mergeParsedAccountIntoForm(sourceForm, parsed);
+      setForm(nextForm);
+      return nextForm;
+    } catch {
+      return sourceForm;
     }
   }
 

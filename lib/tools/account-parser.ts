@@ -45,6 +45,13 @@ export type AccountParserResult = {
   warnings: string[];
 };
 
+export type AccountProfileUrlCandidateInput = {
+  accountId?: string;
+  accountName?: string;
+  platform?: AccountPlatform | string;
+  platformLabel?: string;
+};
+
 type PlatformConfig = {
   domains: string[];
   label: string;
@@ -175,6 +182,7 @@ export function mergeAccountParserResult(
 ): AccountParserResult {
   const ai = isRecord(aiValue) ? aiValue : {};
   const aiPosts = normalizeRecentPosts(ai.recentPosts);
+  const aiLinkType = toLinkType(readString(ai.linkType));
   const next: AccountParserResult = {
     ...base,
     accountId: readString(ai.accountId) || base.accountId,
@@ -184,8 +192,15 @@ export function mergeAccountParserResult(
     contentStyle: readString(ai.contentStyle) || base.contentStyle,
     followers: readString(ai.followers) || base.followers,
     inferredField: readString(ai.inferredField) || base.inferredField,
+    inputType: toInputType(readString(ai.inputType)) || base.inputType,
+    isShortLink: typeof ai.isShortLink === "boolean" ? ai.isShortLink : base.isShortLink,
+    isValidProfileUrl: typeof ai.isValidProfileUrl === "boolean" ? ai.isValidProfileUrl : base.isValidProfileUrl,
+    linkType: aiLinkType || base.linkType,
+    linkTypeLabel: aiLinkType ? getLinkTypeLabel(aiLinkType) : base.linkTypeLabel,
+    normalizedUrl: readString(ai.normalizedUrl) || base.normalizedUrl,
     pageDescription: readString(ai.pageDescription) || base.pageDescription,
     pageTitle: readString(ai.pageTitle) || base.pageTitle,
+    rawUrl: readString(ai.rawUrl) || base.rawUrl,
     recentPosts: aiPosts.length ? aiPosts : base.recentPosts,
     targetUsers: readStringArray(ai.targetUsers).length ? readStringArray(ai.targetUsers).slice(0, 6) : base.targetUsers,
   };
@@ -210,6 +225,57 @@ export function mergeAccountParserResult(
   next.confidence = Math.min(1, Number((base.confidence + (hasMoreData ? 0.12 : 0)).toFixed(2)));
   next.warnings = getWarningsForResult(next);
   return next;
+}
+
+function toInputType(value: string): AccountInputType | "" {
+  return value === "url" || value === "text" || value === "mixed" || value === "unknown" ? value : "";
+}
+
+function toLinkType(value: string): AccountLinkType | "" {
+  return value === "profile" || value === "content" || value === "short" || value === "webpage" || value === "unknown"
+    ? value
+    : "";
+}
+
+export function buildAccountProfileUrlCandidates(input: AccountProfileUrlCandidateInput) {
+  const platform = toPlatform(`${input.platform ?? ""} ${input.platformLabel ?? ""}`);
+  const accountId = sanitizeAccountIdentifier(input.accountId ?? "");
+  const accountName = sanitizeAccountIdentifier(input.accountName ?? "");
+  const primaryIdentifier = accountId || accountName;
+
+  if (!primaryIdentifier) return [];
+
+  const encoded = encodeURIComponent(primaryIdentifier);
+  const urls: string[] = [];
+
+  if (platform === "xiaohongshu") {
+    urls.push(`https://www.xiaohongshu.com/user/profile/${encoded}`);
+  }
+  if (platform === "douyin") {
+    urls.push(`https://www.douyin.com/user/${encoded}`);
+  }
+  if (platform === "bilibili") {
+    urls.push(`https://space.bilibili.com/${encoded}`);
+  }
+  if (platform === "kuaishou") {
+    urls.push(`https://www.kuaishou.com/profile/${encoded}`);
+  }
+  if (platform === "weibo") {
+    if (/^\d+$/.test(primaryIdentifier)) {
+      urls.push(`https://weibo.com/u/${encoded}`);
+    } else {
+      urls.push(`https://weibo.com/n/${encoded}`);
+    }
+  }
+
+  return dedupeStrings(urls);
+}
+
+function sanitizeAccountIdentifier(value: string) {
+  const text = value.trim().replace(/^@/, "");
+  if (!text || text.length > 80) return "";
+  if (/^https?:\/\//i.test(text)) return "";
+  return text;
 }
 
 function parseUrlInfo(normalizedUrl: string) {

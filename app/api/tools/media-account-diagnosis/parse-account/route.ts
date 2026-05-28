@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import {
+  buildAccountProfileUrlCandidates,
   mergeAccountParserResult,
   parseAccountInput,
   type AccountParserResult,
@@ -13,8 +14,11 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type ParseAccountRequest = {
+  accountId?: string;
+  accountName?: string;
   accountUrl?: string;
   input?: string;
+  platform?: string;
   rawText?: string;
 };
 
@@ -22,6 +26,11 @@ type PublicPageSnapshot = {
   description: string;
   text: string;
   title: string;
+};
+
+type PublicPageCrawlResult = {
+  snapshot: PublicPageSnapshot;
+  url: string;
 };
 
 export async function POST(request: Request) {
@@ -36,10 +45,14 @@ export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as ParseAccountRequest;
     const input = buildInput(payload);
-    localResult = parseAccountInput(input);
-    const pageSnapshot = await fetchPublicPageSnapshot(localResult);
+    localResult = mergeAccountParserResult(parseAccountInput(input), buildPayloadExtraction(payload));
+    const pageCrawl = await fetchPublicPageSnapshot(localResult, payload);
+    const pageSnapshot = pageCrawl?.snapshot ?? null;
     const parserWithPage = pageSnapshot
-      ? mergeAccountParserResult(localResult, buildPageExtraction(pageSnapshot, localResult))
+      ? mergeAccountParserResult(
+          mergeAccountParserResult(localResult, parseAccountInput(pageCrawl?.url ?? "")),
+          buildPageExtraction(pageSnapshot, localResult),
+        )
       : withCrawlWarning(localResult);
     const aiInput = buildAiInput(input, pageSnapshot);
     const aiResult = await extractWithProvider(aiInput, parserWithPage);
@@ -47,6 +60,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       parser: aiResult ? mergeAccountParserResult(parserWithPage, aiResult) : parserWithPage,
+      crawledUrl: pageCrawl?.url ?? "",
       usedCrawler: Boolean(pageSnapshot),
       usedAi: Boolean(aiResult),
     });
@@ -68,9 +82,23 @@ function buildInput(payload: ParseAccountRequest) {
     return payload.input;
   }
 
-  return [payload.accountUrl, payload.rawText]
+  return [
+    payload.platform ? `平台：${payload.platform}` : "",
+    payload.accountName ? `账号名称：${payload.accountName}` : "",
+    payload.accountId ? `账号ID：${payload.accountId}` : "",
+    payload.accountUrl,
+    payload.rawText,
+  ]
     .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
     .join("\n");
+}
+
+function buildPayloadExtraction(payload: ParseAccountRequest) {
+  return {
+    accountId: payload.accountId,
+    accountName: payload.accountName,
+    platform: payload.platform,
+  };
 }
 
 async function extractWithProvider(input: string, localResult: AccountParserResult) {
@@ -161,14 +189,34 @@ function buildAiInput(input: string, pageSnapshot: PublicPageSnapshot | null) {
   ].join("\n");
 }
 
-async function fetchPublicPageSnapshot(result: AccountParserResult): Promise<PublicPageSnapshot | null> {
-  if (!result.normalizedUrl || result.isShortLink || result.linkType === "unknown") {
-    return null;
+async function fetchPublicPageSnapshot(
+  result: AccountParserResult,
+  payload: ParseAccountRequest,
+): Promise<PublicPageCrawlResult | null> {
+  const candidateUrls = dedupeStrings([
+    result.normalizedUrl && !result.isShortLink && result.linkType !== "unknown" ? result.normalizedUrl : "",
+    ...buildAccountProfileUrlCandidates({
+      accountId: result.accountId || payload.accountId,
+      accountName: result.accountName || payload.accountName,
+      platform: result.platform,
+      platformLabel: result.platformLabel || payload.platform,
+    }),
+  ]).slice(0, 3);
+
+  for (const candidateUrl of candidateUrls) {
+    const snapshot = await fetchSinglePublicPageSnapshot(candidateUrl);
+    if (snapshot) {
+      return { snapshot, url: candidateUrl };
+    }
   }
 
+  return null;
+}
+
+async function fetchSinglePublicPageSnapshot(candidateUrl: string): Promise<PublicPageSnapshot | null> {
   let url: URL;
   try {
-    url = new URL(result.normalizedUrl);
+    url = new URL(candidateUrl);
   } catch {
     return null;
   }
@@ -182,9 +230,11 @@ async function fetchPublicPageSnapshot(result: AccountParserResult): Promise<Pub
   try {
     const response = await fetch(url.toString(), {
       headers: {
-        Accept: "text/html,application/xhtml+xml,text/plain;q=0.8,*/*;q=0.5",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.6",
+        Referer: "https://www.baidu.com/",
         "User-Agent":
-          "Mozilla/5.0 (compatible; MediaAccountDiagnosisAgent/1.0; +https://example.com/agent)",
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
       },
       redirect: "follow",
       signal: controller.signal,

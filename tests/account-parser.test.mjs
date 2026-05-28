@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseAccountInput } from "../lib/tools/account-parser.ts";
+import { buildAccountProfileUrlCandidates, parseAccountInput } from "../lib/tools/account-parser.ts";
 
 test("recognizes xiaohongshu profile URLs without protocol", () => {
   const result = parseAccountInput("www.xiaohongshu.com/user/profile/abc123");
@@ -127,6 +127,18 @@ test("extracts platform account id labels from copied profile text", () => {
   assert.equal(parseAccountInput("抖音ID：douyin-growth-01").accountId, "douyin-growth-01");
   assert.equal(parseAccountInput("B站 UID: 12345678").accountId, "12345678");
   assert.equal(parseAccountInput("平台号 ks_2026").accountId, "ks_2026");
+});
+
+test("builds public profile crawl candidates from platform and account id", () => {
+  assert.deepEqual(buildAccountProfileUrlCandidates({ accountId: "red_2026", platform: "小红书" }), [
+    "https://www.xiaohongshu.com/user/profile/red_2026",
+  ]);
+  assert.deepEqual(buildAccountProfileUrlCandidates({ accountId: "12345678", platform: "B站" }), [
+    "https://space.bilibili.com/12345678",
+  ]);
+  assert.deepEqual(buildAccountProfileUrlCandidates({ accountId: "654321", platform: "微博" }), [
+    "https://weibo.com/u/654321",
+  ]);
 });
 
 test("recognizes mixed link and copied profile text", () => {
