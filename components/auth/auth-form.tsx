@@ -241,5 +241,12 @@ function getAuthErrorMessage(
     return t("auth.emailNotConfirmed");
   }
 
+  if (
+    normalizedMessage.includes("email rate limit exceeded") ||
+    normalizedMessage.includes("rate limit")
+  ) {
+    return t("auth.emailRateLimitExceeded");
+  }
+
   return message || t("auth.authFailed");
 }

@@ -585,6 +585,8 @@ export const dictionaries = {
         "Account created. Please confirm your email before signing in.",
       emailNotConfirmed:
         "Your email is not confirmed yet. Please open your inbox and click the confirmation link.",
+      emailRateLimitExceeded:
+        "Too many confirmation emails have been sent recently. Please wait and try again later, or contact the administrator.",
       signUpSuccess:
         "Account created. Check your email if confirmation is required, then sign in.",
       submitting: "Submitting...",
@@ -1155,6 +1157,7 @@ export const dictionaries = {
         "现在可创建买家账号。创作者和管理员角色通过 profiles 表管理。",
       emailConfirmationRequired: "账号已创建，请先到邮箱点击确认邮件后再登录。",
       emailNotConfirmed: "邮箱尚未确认，请先打开注册邮箱点击确认链接。",
+      emailRateLimitExceeded: "确认邮件发送太频繁，请稍后再试，或联系管理员处理。",
       signUpSuccess: "账号已创建。如果需要邮箱确认，请先查收邮件，然后登录。",
       submitting: "提交中...",
       supabaseNotConfiguredTitle: "尚未配置 Supabase Auth",
