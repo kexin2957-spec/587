@@ -1159,7 +1159,7 @@ export function MediaAccountDiagnosisAgent() {
       return;
     }
 
-    if (!form.recognition.accountUrl.trim() && !form.recognition.rawText.trim()) {
+    if (!form.recognition.accountUrl.trim() && !form.recognition.rawText.trim() && !shouldAutoEnrichBeforeGeneration(form)) {
       const field = inferField(raw);
       const notes = [
         form.account.platform ? `平台：${form.account.platform}` : "",
