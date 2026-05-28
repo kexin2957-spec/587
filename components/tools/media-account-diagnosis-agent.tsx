@@ -763,19 +763,25 @@ async function requestDiagnosisReport({
 
   const headers = await getReportRequestHeaders();
   const diagnosisInput = createReportInput(form);
-  const response = await fetch(getGenerateReportEndpoint(), {
-    body: JSON.stringify({
-      ...diagnosisInput,
-      anonymousDeviceId,
-      consumeQuota,
-      diagnosisInput,
-      focus,
-      form,
-      plan,
-    }),
-    headers,
-    method: "POST",
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(getGenerateReportEndpoint(), {
+      body: JSON.stringify({
+        ...diagnosisInput,
+        anonymousDeviceId,
+        consumeQuota,
+        diagnosisInput,
+        focus,
+        form,
+        plan,
+      }),
+      headers,
+      method: "POST",
+    });
+  } catch {
+    throw new DiagnosisReportRequestError("无法连接生成服务，请检查 Render 后端 API 地址或跨域配置。");
+  }
   const payload = (await response.json()) as {
     error?: string;
     ok?: boolean;
