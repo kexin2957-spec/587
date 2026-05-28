@@ -69,6 +69,7 @@ export function SiteHeader() {
           <div className="hidden items-center gap-2 lg:flex">
             <AuthActions
               isLoading={isLoading}
+              language={language}
               role={role}
               t={t}
               userEmail={user?.email ?? null}
@@ -118,6 +119,7 @@ export function SiteHeader() {
             <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
               <AuthActions
                 isLoading={isLoading}
+                language={language}
                 role={role}
                 t={t}
                 userEmail={user?.email ?? null}
@@ -139,11 +141,13 @@ export function SiteHeader() {
 
 function AuthActions({
   isLoading,
+  language,
   role,
   t,
   userEmail,
 }: {
   isLoading: boolean;
+  language: AppLanguage;
   role: string;
   t: (key: string) => string;
   userEmail: string | null;
@@ -168,6 +172,9 @@ function AuthActions({
       <span className="max-w-48 truncate rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
         {userEmail}
       </span>
+      <HeaderLink href="/customer/dashboard">
+        {language === "zh" ? "个人中心" : "Dashboard"}
+      </HeaderLink>
       {role === "admin" ? (
         <HeaderLink href="/admin">{t("nav.admin")}</HeaderLink>
       ) : null}
