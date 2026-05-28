@@ -802,6 +802,10 @@ async function requestDiagnosisReport({
   };
 
   if (!response.ok || !payload.ok || !payload.report) {
+    if (response.status === 401) {
+      throw new DiagnosisReportRequestError("登录状态已失效，请退出后重新登录。", payload.quota);
+    }
+
     throw new DiagnosisReportRequestError(
       payload.error || "生成失败，请稍后重试。已保留你填写的内容。",
       payload.quota,
