@@ -26,7 +26,9 @@ const scoreKeys = [
 
 const systemPrompt = `你是一名资深新媒体增长顾问，擅长小红书、抖音、视频号、B站、公众号账号诊断、内容增长、私域转化和商业变现。
 
-你需要根据用户提供的账号链接识别信息、账号信息、近期内容、竞品信息和变现目标，生成一份专业、具体、可执行的新媒体账号增长诊断报告。不要泛泛而谈，不要输出空洞建议。每个判断都要尽量结合用户输入；信息不足时必须明确说明“基于现有信息推断”。
+你需要优先根据用户选择的平台、填写的账号名/账号ID、账号简介、粉丝数、近期内容、目标客户、产品服务和当前目标，生成一份专业、具体、可执行的新媒体账号增长诊断报告。账号主页链接只是辅助参考，不能假设已经自动抓取平台完整数据。不要泛泛而谈，不要输出空洞建议。每个判断都要尽量结合用户输入；信息不足时必须明确说明“基于现有信息推断”。
+
+如果用户没有提供主页简介和近期内容数据，报告里必须说明：“由于你没有提供主页简介和近期内容数据，本报告会基于平台、账号名和目标进行基础诊断。补充内容数据后可获得更精准分析。”
 
 输出要求：
 1. 只输出合法 JSON，不要 Markdown 代码块。
@@ -100,7 +102,8 @@ app.get("/api/generate-report", async (request, response) => {
 app.post("/api/generate-report", async (request, response) => {
   const payload = isRecord(request.body) ? request.body : {};
   const form = isRecord(payload.form) ? payload.form : {};
-  const validationError = validateInput(form);
+  const diagnosisInput = normalizeDiagnosisInput(form, payload.diagnosisInput || payload);
+  const validationError = validateInput(form, diagnosisInput);
 
   if (validationError) {
     response.status(422).json({ error: validationError, ok: false });
@@ -134,6 +137,7 @@ app.post("/api/generate-report", async (request, response) => {
 
   try {
     const report = await generateWithProvider({
+      diagnosisInput,
       focus: readString(payload.focus) || "full",
       form,
       plan: readString(payload.plan) || "advanced",
@@ -204,7 +208,7 @@ function applyCors(request, response, next) {
   }
 
   response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
 
   if (request.method === "OPTIONS") {
     response.status(204).end();
@@ -355,24 +359,81 @@ function normalizeQuotaResponse(data) {
   };
 }
 
-function validateInput(form) {
+function normalizeDiagnosisInput(form, input) {
   const account = readRecord(form.account);
   const recognition = readRecord(form.recognition);
-  const recentContents = Array.isArray(form.recentContents) ? form.recentContents : [];
-  const hasSource =
-    readString(recognition.accountUrl) ||
-    readString(recognition.rawText) ||
-    readString(recognition.screenshotName) ||
-    recentContents.some((item) => {
-      const content = readRecord(item);
-      return readString(content.title) || readString(content.body) || readString(content.views);
-    });
+  const source = readRecord(input);
+  const recentContentText = [
+    readString(source.recentContentText),
+    readString(recognition.rawText),
+    recentContentsToText(form.recentContents),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
-  if (!hasSource) return "请先粘贴账号链接、数据文本、上传截图或填写最近内容。";
-  if (!readString(account.biggestProblem) && !readString(account.primaryGoal)) {
+  return {
+    accountId: readString(source.accountId) || readString(account.accountId),
+    accountName: readString(source.accountName) || readString(account.name),
+    bio: readString(source.bio) || readString(account.intro),
+    followers: readString(source.followers) || readString(account.followers),
+    goal:
+      readString(source.goal) ||
+      readString(account.biggestProblem) ||
+      readString(account.primaryGoal) ||
+      readString(readRecord(form.monetization).businessResult),
+    platform: readString(source.platform) || readString(account.platform) || inferPlatform(readString(source.profileUrl) || readString(recognition.accountUrl)),
+    productOrService: readString(source.productOrService) || readString(account.productService),
+    profileUrl: readString(source.profileUrl) || readString(recognition.accountUrl),
+    recentContentText,
+    targetAudience: readString(source.targetAudience) || readString(account.targetCustomer) || readString(account.primaryGoal),
+  };
+}
+
+function recentContentsToText(contents) {
+  if (!Array.isArray(contents)) return "";
+
+  return contents
+    .map((item, index) => {
+      const content = readRecord(item);
+      const title = readString(content.title);
+      const body = readString(content.body);
+      const views = readString(content.views);
+      const likes = readString(content.likes);
+      const saves = readString(content.saves);
+      const comments = readString(content.comments);
+      const follows = readString(content.follows);
+
+      if (!title && !body && !views) return "";
+
+      return [
+        `内容${index + 1}：${title || "未命名内容"}`,
+        views ? `播放/阅读：${views}` : "",
+        likes ? `点赞：${likes}` : "",
+        saves ? `收藏：${saves}` : "",
+        comments ? `评论：${comments}` : "",
+        follows ? `涨粉：${follows}` : "",
+        body ? `正文/脚本：${body}` : "",
+      ]
+        .filter(Boolean)
+        .join("，");
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function validateInput(form, diagnosisInput) {
+  const account = readRecord(form.account);
+
+  if (!readString(diagnosisInput.platform)) return "请选择平台。";
+  if (!readString(diagnosisInput.accountName) && !readString(diagnosisInput.accountId)) {
+    return "请填写账号名称或账号ID。";
+  }
+  if (!readString(diagnosisInput.goal)) {
     return "请补充当前最想解决的问题。";
   }
-  if (!readString(account.targetCustomer)) return "请补充目标客户，这会直接影响报告可执行性。";
+  if (!readString(diagnosisInput.targetAudience) && !readString(account.primaryGoal)) {
+    return "请补充目标客户或账号目标。";
+  }
   return "";
 }
 
@@ -384,13 +445,13 @@ function getLocalDateKey() {
   return `${year}-${month}-${day}`;
 }
 
-async function generateWithProvider({ focus, form, plan }) {
+async function generateWithProvider({ diagnosisInput, focus, form, plan }) {
   const provider = (process.env.AI_PROVIDER || "moonshot").toLowerCase();
   const useMoonshot = provider === "moonshot" || (!provider && Boolean(process.env.MOONSHOT_API_KEY));
   const apiKey = useMoonshot ? process.env.MOONSHOT_API_KEY : process.env.OPENAI_API_KEY || process.env.AI_API_KEY;
 
   if (!apiKey) {
-    return buildDemoReport(form);
+    return buildDemoReport(form, diagnosisInput);
   }
 
   const baseUrl = (
@@ -406,9 +467,12 @@ async function generateWithProvider({ focus, form, plan }) {
         content: [
           `当前版本：${plan}`,
           `本次重点：${focus}`,
-          "用户输入 JSON：",
+          buildInputCompletenessNote(diagnosisInput),
+          "标准化诊断输入 JSON：",
+          JSON.stringify(diagnosisInput, null, 2),
+          "完整补充表单 JSON：",
           JSON.stringify(form, null, 2),
-          "请基于这些信息生成完整结构化报告。如果数据来自识别结果，请明确哪些判断是基于现有信息推断。",
+          "请优先基于标准化诊断输入生成报告，不要依赖账号主页链接判断平台。链接仅作为辅助参考。如果数据不足，请明确哪些判断是基于现有信息推断。",
         ].join("\n"),
         role: "user",
       },
@@ -435,7 +499,7 @@ async function generateWithProvider({ focus, form, plan }) {
     });
   } catch (error) {
     console.error("moonshot_fetch_error", error);
-    return buildDemoReport(form);
+    return buildDemoReport(form, diagnosisInput);
   }
 
   if (!providerResponse.ok) {
@@ -446,12 +510,20 @@ async function generateWithProvider({ focus, form, plan }) {
     }
 
     console.error("moonshot_response_error", providerResponse.status, errorText.slice(0, 500));
-    return buildDemoReport(form);
+    return buildDemoReport(form, diagnosisInput);
   }
 
   const result = await providerResponse.json().catch(() => null);
   const content = result?.choices?.[0]?.message?.content;
-  return normalizeReport(extractJson(content), form);
+  return normalizeReport(extractJson(content), form, diagnosisInput);
+}
+
+function buildInputCompletenessNote(diagnosisInput) {
+  if (readString(diagnosisInput.bio) && readString(diagnosisInput.recentContentText)) {
+    return "用户已提供账号简介和近期内容数据，请结合这些信息做具体判断。";
+  }
+
+  return "由于用户没有提供主页简介和近期内容数据，报告必须说明：由于你没有提供主页简介和近期内容数据，本报告会基于平台、账号名和目标进行基础诊断。补充内容数据后可获得更精准分析。";
 }
 
 function isProviderRateLimited(status, errorText) {
@@ -487,8 +559,8 @@ function extractJson(content) {
   }
 }
 
-function normalizeReport(raw, form) {
-  const fallback = buildDemoReport(form);
+function normalizeReport(raw, form, diagnosisInput = normalizeDiagnosisInput(form, {})) {
+  const fallback = buildDemoReport(form, diagnosisInput);
   const scores = readRecord(raw.scores);
   const normalizedScores = {};
 
@@ -515,18 +587,26 @@ function normalizeReport(raw, form) {
   };
 }
 
-function buildDemoReport(form) {
+function buildDemoReport(form, diagnosisInput = normalizeDiagnosisInput(form, {})) {
   const account = readRecord(form.account);
-  const recognition = readRecord(form.recognition);
-  const platform = readString(account.platform) || inferPlatform(readString(recognition.accountUrl)) || "主平台";
+  const platform = readString(diagnosisInput.platform) || readString(account.platform) || "主平台";
+  const accountName = readString(diagnosisInput.accountName) || readString(diagnosisInput.accountId) || readString(account.name) || "当前账号";
   const field = readString(account.field) || "当前领域";
-  const targetCustomer = readString(account.targetCustomer) || "目标用户";
-  const product = readString(account.productService) || "产品/服务";
-  const goal = readString(account.primaryGoal) || readString(account.biggestProblem) || "获客与转化";
+  const targetCustomer = readString(diagnosisInput.targetAudience) || readString(account.targetCustomer) || "目标用户";
+  const product = readString(diagnosisInput.productOrService) || readString(account.productService) || "产品/服务";
+  const goal = readString(diagnosisInput.goal) || readString(account.primaryGoal) || readString(account.biggestProblem) || "获客与转化";
+  const isBasicDiagnosis = !readString(diagnosisInput.bio) && !readString(diagnosisInput.recentContentText);
+  const basicDiagnosisNote = "由于你没有提供主页简介和近期内容数据，本报告会基于平台、账号名和目标进行基础诊断。补充内容数据后可获得更精准分析。";
 
   return {
-    oneLineJudgement: `当前账号适合先围绕“${field} + ${targetCustomer}”统一定位，再用连续 7 天内容测试提升${goal}效率。`,
-    problemTags: ["识别信息待完善", "标题结果感不够强", "主页转化弱", "内容栏目需要稳定", "私域引导不足"],
+    oneLineJudgement: `${isBasicDiagnosis ? `${basicDiagnosisNote} ` : ""}${accountName}适合先围绕“${field} + ${targetCustomer}”统一定位，再用连续 7 天内容测试提升${goal}效率。`,
+    problemTags: [
+      isBasicDiagnosis ? "基础信息诊断" : "识别信息待完善",
+      "标题结果感不够强",
+      "主页转化弱",
+      "内容栏目需要稳定",
+      "私域引导不足",
+    ],
     scores: {
       positioningClarity: 68,
       targetUserClarity: 72,
@@ -582,6 +662,7 @@ function buildDemoReport(form) {
       },
       positioning: {
         当前账号像什么类型: `${platform}${field}知识/解决方案型账号`,
+        信息完整度说明: isBasicDiagnosis ? basicDiagnosisNote : "已结合你提供的账号简介或近期内容数据进行诊断。",
         定位是否清晰: "基于现有信息判断：有方向，但表达还可以更锋利。",
         当前定位最大问题: "账号价值点还需要更具体地绑定目标客户和商业结果。",
         建议定位方向: `${targetCustomer}的${field}增长/提效顾问`,

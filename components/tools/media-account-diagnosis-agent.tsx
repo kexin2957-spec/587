@@ -40,6 +40,7 @@ type Competitor = {
 
 type DiagnosisForm = {
   account: {
+    accountId: string;
     avgViews: string;
     biggestProblem: string;
     field: string;
@@ -82,6 +83,19 @@ type DiagnosisReport = {
   title?: string;
 };
 
+type DiagnosisReportInput = {
+  accountId?: string;
+  accountName: string;
+  bio?: string;
+  followers?: string;
+  goal?: string;
+  platform: string;
+  productOrService?: string;
+  profileUrl?: string;
+  recentContentText?: string;
+  targetAudience?: string;
+};
+
 type StoredState = {
   form: DiagnosisForm;
   plan: PlanId;
@@ -117,7 +131,6 @@ type ParseAccountResponse = {
 };
 
 type PlanId = "basic" | "standard" | "advanced";
-type RecognitionTab = "url" | "text" | "screenshot";
 type StepId = 1 | 2 | 3;
 
 const storageKey = "media-account-diagnosis-agent:marketplace:v1";
@@ -128,6 +141,8 @@ const generationQuotaExceededMessage = "你今天的 5 次生成次数已用完�
 const loginRequiredMessage = "请先登录后再使用账号诊断 Agent。";
 const reportApiNotConfiguredMessage = "生成接口未配置，请联系管理员配置 Render API 地址。";
 const reportApiBaseUrl = normalizeReportApiBaseUrl(process.env.NEXT_PUBLIC_REPORT_API_BASE_URL);
+const platformOptions = ["", "小红书", "抖音", "视频号", "B站", "快手", "公众号", "微博", "其他"];
+const fieldOptions = ["", "AI", "教育", "美妆", "母婴", "装修", "本地生活", "职场", "电商", "个人IP", "其他"];
 
 const scoreLabels: Record<string, string> = {
   positioningClarity: "账号定位清晰度",
@@ -262,6 +277,7 @@ function createCompetitor(): Competitor {
 function createDefaultForm(): DiagnosisForm {
   return {
     account: {
+      accountId: "",
       avgViews: "",
       biggestProblem: "",
       field: "",
@@ -300,6 +316,7 @@ function createDefaultForm(): DiagnosisForm {
 function createSampleForm(): DiagnosisForm {
   return {
     account: {
+      accountId: "demo-ai-growth",
       avgViews: "3200",
       biggestProblem: "播放量忽高忽低，收藏不少但私信咨询少，主页不知道怎么承接训练营。",
       field: "AI",
@@ -549,6 +566,49 @@ function hasRecentContent(item: RecentContent) {
   return Boolean(item.title.trim() || item.body.trim() || item.views.trim());
 }
 
+function recentContentsToText(contents: RecentContent[]) {
+  return contents
+    .filter(hasRecentContent)
+    .map((item, index) =>
+      [
+        `内容${index + 1}：${item.title || "未命名内容"}`,
+        item.views ? `播放/阅读：${item.views}` : "",
+        item.likes ? `点赞：${item.likes}` : "",
+        item.saves ? `收藏：${item.saves}` : "",
+        item.comments ? `评论：${item.comments}` : "",
+        item.follows ? `涨粉：${item.follows}` : "",
+        item.body ? `正文/脚本：${item.body}` : "",
+      ]
+        .filter(Boolean)
+        .join("，"),
+    )
+    .join("\n");
+}
+
+function createReportInput(form: DiagnosisForm): DiagnosisReportInput {
+  const recentContentText = [form.recognition.rawText, recentContentsToText(form.recentContents)]
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join("\n\n");
+
+  return {
+    accountId: form.account.accountId.trim() || undefined,
+    accountName: form.account.name.trim(),
+    bio: form.account.intro.trim() || undefined,
+    followers: form.account.followers.trim() || undefined,
+    goal:
+      form.account.biggestProblem.trim() ||
+      form.account.primaryGoal.trim() ||
+      form.monetization.businessResult.trim() ||
+      undefined,
+    platform: form.account.platform.trim(),
+    productOrService: form.account.productService.trim() || undefined,
+    profileUrl: form.recognition.accountUrl.trim() || undefined,
+    recentContentText: recentContentText || undefined,
+    targetAudience: form.account.targetCustomer.trim() || form.account.primaryGoal.trim() || undefined,
+  };
+}
+
 function compactText(value: unknown): string {
   if (Array.isArray(value)) {
     return value.map((item) => compactText(item)).filter(Boolean).join("\n");
@@ -593,6 +653,20 @@ async function copyText(text: string) {
 
 function FieldLabel({ children }: { children: ReactNode }) {
   return <span className="text-sm font-semibold text-slate-800">{children}</span>;
+}
+
+function getAccountNamePlaceholder(platform: string) {
+  const placeholders: Record<string, string> = {
+    B站: "例如：B站昵称或 UID：123456",
+    公众号: "例如：公众号名称：增长研究所",
+    小红书: "例如：小红书号：xxxx 或账号昵称",
+    微博: "例如：微博昵称或主页 ID",
+    快手: "例如：快手号：xxxx",
+    抖音: "例如：抖音号：xxxx 或账号昵称",
+    视频号: "例如：视频号名称：xxxx",
+  };
+
+  return placeholders[platform] ?? "例如：平台账号名、账号ID、昵称";
 }
 
 function normalizeReportApiBaseUrl(value: string | undefined) {
@@ -646,8 +720,17 @@ async function requestDiagnosisReport({
   }
 
   const headers = await getReportRequestHeaders();
+  const diagnosisInput = createReportInput(form);
   const response = await fetch(getGenerateReportEndpoint(), {
-    body: JSON.stringify({ anonymousDeviceId, consumeQuota, focus, form, plan }),
+    body: JSON.stringify({
+      ...diagnosisInput,
+      anonymousDeviceId,
+      consumeQuota,
+      diagnosisInput,
+      focus,
+      form,
+      plan,
+    }),
     headers,
     method: "POST",
   });
@@ -727,7 +810,6 @@ export function MediaAccountDiagnosisAgent() {
   const [plan, setPlan] = useState<PlanId>("advanced");
   const [report, setReport] = useState<DiagnosisReport | null>(null);
   const [activeStep, setActiveStep] = useState<StepId>(1);
-  const [activeTab, setActiveTab] = useState<RecognitionTab>("url");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRecognizing, setIsRecognizing] = useState(false);
@@ -916,17 +998,30 @@ export function MediaAccountDiagnosisAgent() {
   }
 
   async function recognizeAccountWithParser() {
-    const raw = `${form.recognition.accountUrl}\n${form.recognition.rawText}`.trim();
+    const raw = [
+      form.account.platform ? `平台：${form.account.platform}` : "",
+      form.account.name ? `账号名称或账号ID：${form.account.name}` : "",
+      form.account.accountId ? `平台账号ID：${form.account.accountId}` : "",
+      form.account.intro ? `简介：${form.account.intro}` : "",
+      form.account.followers ? `粉丝数：${form.account.followers}` : "",
+      form.account.avgViews ? `平均播放/阅读：${form.account.avgViews}` : "",
+      form.recognition.accountUrl ? `账号主页链接：${form.recognition.accountUrl}` : "",
+      form.recognition.rawText,
+      recentContentsToText(form.recentContents),
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .trim();
 
     if (!raw && !form.recognition.screenshotName) {
-      setToast("先粘贴主页链接、账号主页信息，或上传截图作为参考。");
+      setToast("先选择平台并填写账号名称或账号ID。");
       return;
     }
 
     if (!raw && form.recognition.screenshotName) {
       const notes = [
-        `已记录截图：${form.recognition.screenshotName}。上传截图可作为诊断参考，当前版本主要根据文本信息生成报告。`,
-        "由于平台限制，部分账号信息需要手动补充。",
+        `已记录截图：${form.recognition.screenshotName}。截图识别功能后续上线，当前请优先填写账号名和主页信息。`,
+        "链接和截图仅作为辅助参考，不保证每个平台都能自动读取。",
       ];
 
       setForm((current) => ({
@@ -937,7 +1032,36 @@ export function MediaAccountDiagnosisAgent() {
           recognizedAt: new Date().toISOString(),
         },
       }));
-      setToast("已记录截图，请继续补充账号链接或主页信息。");
+      setToast("已记录截图，请继续填写平台和账号名。");
+      return;
+    }
+
+    if (!form.recognition.accountUrl.trim() && !form.recognition.rawText.trim()) {
+      const field = inferField(raw);
+      const notes = [
+        form.account.platform ? `平台：${form.account.platform}` : "",
+        form.account.name ? `账号名称或账号ID：${form.account.name}` : "",
+        form.account.accountId ? `平台账号ID：${form.account.accountId}` : "",
+        field ? `已推断领域：${field}` : "",
+        form.recognition.screenshotName
+          ? `已记录截图：${form.recognition.screenshotName}。截图识别功能后续上线，当前请优先填写账号名和主页信息。`
+          : "",
+        "当前已按你填写的信息整理为诊断输入，链接仅作为辅助参考。",
+      ].filter(Boolean);
+
+      setForm((current) => ({
+        ...current,
+        account: {
+          ...current.account,
+          field: current.account.field || field,
+        },
+        recognition: {
+          ...current.recognition,
+          notes,
+          recognizedAt: new Date().toISOString(),
+        },
+      }));
+      setToast("信息已整理，可以继续确认目标。");
       return;
     }
 
@@ -985,11 +1109,12 @@ export function MediaAccountDiagnosisAgent() {
           account: {
             ...current.account,
             avgViews: parsed.avgViews || averageViews(nextRecentContents) || current.account.avgViews,
+            accountId: parsed.accountId || current.account.accountId,
             field: parsed.inferredField || field || current.account.field,
             followers: parsed.followers || current.account.followers,
             intro: parsed.bio || current.account.intro,
-            name: parsed.accountName || current.account.name,
-            platform: parsed.platform !== "unknown" ? parsed.platformLabel : current.account.platform,
+            name: current.account.name || parsed.accountName,
+            platform: current.account.platform || (parsed.platform !== "unknown" ? parsed.platformLabel : ""),
             targetCustomer:
               current.account.targetCustomer || parsed.targetUsers.join("、") || current.account.targetCustomer,
           },
@@ -1007,10 +1132,12 @@ export function MediaAccountDiagnosisAgent() {
       setToast(
         parsed.warnings.find((warning) => warning.includes("无法读取账号详细信息")) ||
           parsed.warnings.find((warning) => warning.includes("暂时无法识别")) ||
-          "识别完成，已预填你粘贴内容里的账号信息。",
+          "信息已整理，缺失项可继续手动补充。",
       );
     } catch {
-      const warning = "暂时无法识别该链接，请手动选择平台。";
+      const warning = form.account.platform
+        ? "已识别平台，但无法读取账号详细信息，请补充账号简介、粉丝数和近期内容。"
+        : "暂时无法识别该链接，请手动选择平台。";
       setForm((current) => ({
         ...current,
         recognition: {
@@ -1033,16 +1160,16 @@ export function MediaAccountDiagnosisAgent() {
   }
 
   function validate(targetForm: DiagnosisForm) {
-    const hasSource =
-      targetForm.recognition.accountUrl ||
-      targetForm.recognition.rawText ||
-      targetForm.recognition.screenshotName ||
-      targetForm.recentContents.some(hasRecentContent);
-    if (!hasSource) return "请先粘贴账号链接、数据文本、上传截图或填写最近内容。";
+    if (!targetForm.account.platform.trim()) return "请选择平台。";
+    if (!targetForm.account.name.trim() && !targetForm.account.accountId.trim()) {
+      return "请填写账号名称或账号ID。";
+    }
     if (!targetForm.account.biggestProblem.trim() && !targetForm.account.primaryGoal.trim()) {
       return "请补充当前最想解决的问题。";
     }
-    if (!targetForm.account.targetCustomer.trim()) return "请补充目标客户是谁。";
+    if (!targetForm.account.targetCustomer.trim() && !targetForm.account.primaryGoal.trim()) {
+      return "请补充目标客户或账号目标。";
+    }
     return "";
   }
 
@@ -1070,7 +1197,9 @@ export function MediaAccountDiagnosisAgent() {
     if (validationError) {
       setError(validationError);
       setToast(validationError);
-      setActiveStep(validationError.includes("先粘贴") ? 1 : 2);
+      setActiveStep(
+        validationError.includes("平台") || validationError.includes("账号名称") ? 1 : 2,
+      );
       return;
     }
 
@@ -1156,7 +1285,7 @@ export function MediaAccountDiagnosisAgent() {
 
   const recognizedRows = [
     ["平台", form.account.platform || "待补充"],
-    ["账号名称", form.account.name || "待补充"],
+    ["账号名称/ID", form.account.name || form.account.accountId || "待补充"],
     ["账号简介", form.account.intro || "待补充"],
     ["粉丝数", form.account.followers || "待补充"],
     ["近期内容数量", `${form.recentContents.filter(hasRecentContent).length} 条`],
@@ -1176,7 +1305,7 @@ export function MediaAccountDiagnosisAgent() {
               新媒体账号体检 Agent
             </h1>
             <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-              粘贴账号信息，AI 自动生成账号评分、内容问题、主页优化、爆款机会、7天/30天增长计划和私域转化话术。
+              选择平台并填写账号名，AI 会结合你补充的简介、粉丝数和近期内容，生成账号诊断报告。
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <button
@@ -1236,14 +1365,13 @@ export function MediaAccountDiagnosisAgent() {
           <div className="mt-6">
             {activeStep === 1 ? (
               <StepOne
-                activeTab={activeTab}
                 form={form}
                 hasRecognitionSummary={hasRecognitionSummary}
                 isRecognizing={isRecognizing}
                 onFillSample={fillSample}
                 onOpenDrawer={() => setIsDrawerOpen(true)}
                 onRecognize={recognizeAccountWithParser}
-                onSetTab={setActiveTab}
+                onUpdateAccount={updateAccount}
                 onUpdateRecognition={updateRecognition}
                 recognitionNotes={form.recognition.notes}
                 recognizedRows={recognizedRows}
@@ -1285,7 +1413,7 @@ export function MediaAccountDiagnosisAgent() {
                 onClick={() => setActiveStep((current) => (current === 1 ? 2 : 3))}
                 type="button"
               >
-                {activeStep === 1 ? "下一步：确认信息" : "下一步：生成报告"}
+                {activeStep === 1 ? "下一步：确认目标" : "下一步：生成诊断报告"}
               </button>
             ) : null}
           </div>
@@ -1368,7 +1496,7 @@ function DiagnosisAuthGate({ isLoading = false }: { isLoading?: boolean }) {
               新媒体账号体检 Agent
             </h1>
             <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-              粘贴账号信息，AI 自动生成账号评分、内容问题、主页优化、爆款机会、7天/30天增长计划和私域转化话术。
+              选择平台并填写账号名，AI 会结合你补充的简介、粉丝数和近期内容，生成账号诊断报告。
             </p>
           </div>
         </div>
@@ -1401,26 +1529,20 @@ function Stepper({ activeStep, form }: { activeStep: StepId; form: DiagnosisForm
   const stepItems: Array<{ id: StepId; label: string; complete: boolean }> = [
     {
       id: 1,
-      label: "识别账号",
-      complete: Boolean(
-        form.recognition.accountUrl ||
-          form.recognition.rawText ||
-          form.recognition.screenshotName ||
-          form.account.platform ||
-          form.account.name,
-      ),
+      label: "填写账号信息",
+      complete: Boolean(form.account.platform && (form.account.name || form.account.accountId)),
     },
     {
       id: 2,
-      label: "确认信息",
+      label: "确认目标",
       complete: Boolean(
-        form.account.targetCustomer.trim() &&
-          (form.account.biggestProblem.trim() || form.account.primaryGoal.trim()),
+        (form.account.biggestProblem.trim() || form.account.primaryGoal.trim()) &&
+          (form.account.targetCustomer.trim() || form.account.primaryGoal.trim()),
       ),
     },
     {
       id: 3,
-      label: "生成报告",
+      label: "生成诊断报告",
       complete: false,
     },
   ];
@@ -1459,105 +1581,104 @@ function Stepper({ activeStep, form }: { activeStep: StepId; form: DiagnosisForm
 }
 
 function StepOne({
-  activeTab,
   form,
   hasRecognitionSummary,
   isRecognizing,
   onFillSample,
   onOpenDrawer,
   onRecognize,
-  onSetTab,
+  onUpdateAccount,
   onUpdateRecognition,
   recognitionNotes,
   recognizedRows,
 }: {
-  activeTab: RecognitionTab;
   form: DiagnosisForm;
   hasRecognitionSummary: boolean;
   isRecognizing: boolean;
   onFillSample: () => void;
   onOpenDrawer: () => void;
   onRecognize: () => void;
-  onSetTab: (tab: RecognitionTab) => void;
+  onUpdateAccount: (key: keyof DiagnosisForm["account"], value: string) => void;
   onUpdateRecognition: (key: keyof DiagnosisForm["recognition"], value: string | string[]) => void;
   recognitionNotes: string[];
   recognizedRows: string[][];
 }) {
-  const tabs: Array<{ id: RecognitionTab; label: string }> = [
-    { id: "url", label: "粘贴链接" },
-    { id: "text", label: "主页文字/昵称" },
-    { id: "screenshot", label: "上传截图" },
-  ];
-
   return (
     <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="premium-card p-5 sm:p-6">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Step 1</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">识别账号</h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">填写账号信息</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            不需要复制复杂链接，填写平台账号名即可。若你愿意，也可以补充主页简介、粉丝数和近期内容，让报告更精准。
+          </p>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          {tabs.map((tab) => (
-            <button
-              className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                activeTab === tab.id
-                  ? "bg-slate-950 text-white shadow-sm shadow-slate-950/20"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
-              key={tab.id}
-              onClick={() => onSetTab(tab.id)}
-              type="button"
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <div className="mt-6 grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectField
+              label="选择平台 *"
+              onChange={(value) => onUpdateAccount("platform", value)}
+              options={platformOptions}
+              value={form.account.platform}
+            />
+            <TextField
+              label="账号名称或账号ID *"
+              onChange={(value) => onUpdateAccount("name", value)}
+              placeholder={getAccountNamePlaceholder(form.account.platform)}
+              value={form.account.name}
+            />
+          </div>
 
-        <div className="mt-5">
-          {activeTab === "url" ? (
-            <label className="grid gap-2">
-              <FieldLabel>账号主页或内容链接</FieldLabel>
-              <input
-                className="polished-input px-4 py-3 text-sm outline-none"
-                onChange={(event) => onUpdateRecognition("accountUrl", event.target.value)}
-                placeholder="支持主页链接、单条内容链接、短链接；也可粘贴 www.xiaohongshu.com/..."
-                type="text"
-                value={form.recognition.accountUrl}
-              />
-            </label>
-          ) : null}
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+            选择平台并填写账号名，AI 会结合你补充的简介、粉丝数和近期内容，生成账号诊断报告。
+          </div>
 
-          {activeTab === "text" ? (
-            <label className="grid gap-2">
-              <FieldLabel>账号主页文字、昵称、近期内容和数据</FieldLabel>
-              <textarea
-                className="polished-input min-h-52 px-4 py-3 text-sm outline-none"
-                onChange={(event) => onUpdateRecognition("rawText", event.target.value)}
-                placeholder="可以只粘贴账号昵称，也可以粘贴主页简介、粉丝数、最近内容标题、播放/阅读/点赞/收藏/评论等信息。"
-                value={form.recognition.rawText}
-              />
-            </label>
-          ) : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField
+              label="账号主页链接，可选"
+              onChange={(value) => onUpdateRecognition("accountUrl", value)}
+              placeholder="链接仅作为辅助参考，不保证每个平台都能自动读取。"
+              value={form.recognition.accountUrl}
+            />
+            <TextField
+              label="粉丝数，可选"
+              onChange={(value) => onUpdateAccount("followers", value)}
+              placeholder="例如：8600、2.3万"
+              value={form.account.followers}
+            />
+          </div>
 
-          {activeTab === "screenshot" ? (
-            <label className="grid gap-2">
-              <FieldLabel>上传主页或数据截图</FieldLabel>
-              <input
-                accept="image/*"
-                className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) onUpdateRecognition("screenshotName", file.name);
-                }}
-                type="file"
-              />
-              <span className="text-sm leading-6 text-slate-500">
-                上传截图可作为诊断参考，当前版本主要根据文本信息生成报告。
-                {form.recognition.screenshotName ? ` 已选择：${form.recognition.screenshotName}` : ""}
-              </span>
-            </label>
-          ) : null}
+          <TextareaField
+            label="账号简介/主页文案，可选"
+            onChange={(value) => onUpdateAccount("intro", value)}
+            placeholder="可以粘贴主页简介、置顶介绍、账号定位文案。"
+            value={form.account.intro}
+          />
+
+          <TextareaField
+            label="最近内容数据，可选"
+            onChange={(value) => onUpdateRecognition("rawText", value)}
+            placeholder="例如：标题、播放/阅读、点赞、收藏、评论、涨粉等。也可以直接粘贴从平台主页复制出来的近期内容信息。"
+            value={form.recognition.rawText}
+          />
+
+          <label className="grid gap-2">
+            <FieldLabel>上传截图，可选</FieldLabel>
+            <input
+              accept="image/*"
+              className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) onUpdateRecognition("screenshotName", file.name);
+              }}
+              type="file"
+            />
+            <span className="text-sm leading-6 text-slate-500">
+              截图识别功能后续上线，当前请优先填写账号名和主页信息。
+              {form.recognition.screenshotName ? ` 已选择：${form.recognition.screenshotName}` : ""}
+            </span>
+          </label>
         </div>
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -1567,7 +1688,7 @@ function StepOne({
             onClick={onRecognize}
             type="button"
           >
-            {isRecognizing ? "识别中..." : "识别并预填"}
+            {isRecognizing ? "整理中..." : "智能整理信息"}
           </button>
           <button
             className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-50"
@@ -1580,7 +1701,7 @@ function StepOne({
       </div>
 
       <aside className="soft-card p-5">
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">AI识别摘要卡片</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">诊断输入摘要</p>
         <div className="mt-4 grid gap-3">
           {recognizedRows.map(([label, value]) => (
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3 last:border-b-0" key={label}>
@@ -1608,7 +1729,7 @@ function StepOne({
         </button>
         {!hasRecognitionSummary ? (
           <p className="mt-3 text-sm leading-6 text-slate-500">
-            如果无法识别，直接进入下一步并手动补充即可。
+            只填写平台和账号名也可以进入下一步，补充简介和内容数据会让报告更精准。
           </p>
         ) : null}
       </aside>
@@ -1630,7 +1751,7 @@ function StepTwo({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Step 2</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">确认信息</h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">确认目标</h2>
         </div>
         <button
           className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-50"
@@ -1650,9 +1771,9 @@ function StepTwo({
           value={form.account.biggestProblem}
         />
         <RequiredInfoCard
-          label="目标客户是谁"
+          label="目标客户或账号目标"
           onChange={(value) => onUpdateAccount("targetCustomer", value)}
-          placeholder="例如：想用 AI 提效的职场新人、自由职业者和小微企业主"
+          placeholder="例如：想用 AI 提效的职场新人；如果暂时不清楚客户，也可以写账号目标：先涨粉、做同城获客、提升私信咨询"
           required
           value={form.account.targetCustomer}
         />
@@ -1712,7 +1833,7 @@ function StepThree({
     <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="premium-card p-5 sm:p-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Step 3</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">生成报告</h2>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">生成诊断报告</h2>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {reportPlans.map((item) => (
@@ -1855,23 +1976,26 @@ function AdvancedDrawer({
                 <SelectField
                   label="账号平台"
                   onChange={(value) => onUpdateAccount("platform", value)}
-                  options={["", "小红书", "抖音", "视频号", "B站", "公众号", "快手", "其他"]}
+                  options={platformOptions}
                   value={form.account.platform}
                 />
                 <SelectField
                   label="账号领域"
                   onChange={(value) => onUpdateAccount("field", value)}
-                  options={["", "AI", "教育", "美妆", "母婴", "装修", "本地生活", "职场", "电商", "个人IP", "其他"]}
+                  options={fieldOptions}
                   value={form.account.field}
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <TextField label="账号名称" onChange={(value) => onUpdateAccount("name", value)} value={form.account.name} />
+                <TextField label="平台账号ID（可选）" onChange={(value) => onUpdateAccount("accountId", value)} value={form.account.accountId} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
                 <TextField label="当前粉丝数" onChange={(value) => onUpdateAccount("followers", value)} value={form.account.followers} />
+                <TextField label="平均播放/阅读" onChange={(value) => onUpdateAccount("avgViews", value)} value={form.account.avgViews} />
               </div>
               <TextareaField label="账号简介" onChange={(value) => onUpdateAccount("intro", value)} value={form.account.intro} />
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextField label="平均播放/阅读" onChange={(value) => onUpdateAccount("avgViews", value)} value={form.account.avgViews} />
                 <SelectField
                   label="当前主要目标"
                   onChange={(value) => onUpdateAccount("primaryGoal", value)}
@@ -2085,10 +2209,12 @@ function ContentCaseEditor({
 function TextField({
   label,
   onChange,
+  placeholder = "",
   value,
 }: {
   label: string;
   onChange: (value: string) => void;
+  placeholder?: string;
   value: string;
 }) {
   return (
@@ -2097,6 +2223,7 @@ function TextField({
       <input
         className="rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
         onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
         value={value}
       />
     </label>
@@ -2106,10 +2233,12 @@ function TextField({
 function TextareaField({
   label,
   onChange,
+  placeholder = "",
   value,
 }: {
   label: string;
   onChange: (value: string) => void;
+  placeholder?: string;
   value: string;
 }) {
   return (
@@ -2118,6 +2247,7 @@ function TextareaField({
       <textarea
         className="min-h-24 rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
         onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
         value={value}
       />
     </label>

@@ -771,19 +771,19 @@ export const demoAgents: DemoAgent[] = [
       "Find the core reasons why an account is not growing, converting, or closing customers.",
     shortDescriptionZh: "找出不涨粉、不转化、不成交的核心问题",
     descriptionEn:
-      "Paste account information and recent content data. The AI generates account scoring, positioning diagnosis, profile optimization, viral content directions, 7-day and 30-day content plans, and private traffic conversion scripts. It can lightly read public page title/meta/OG text when accessible, and never logs in or bypasses platform restrictions.",
+      "Select a platform, enter the account name or ID, and optionally add intro, followers, and recent content data. The AI generates account scoring, positioning diagnosis, profile optimization, viral content directions, 7-day and 30-day content plans, and private traffic conversion scripts.",
     descriptionZh:
       "粘贴账号信息和近期内容，AI 自动生成账号评分、定位诊断、主页优化、爆款方向、7天/30天内容计划和私域转化话术。",
     featuresEn: [
-      "Recognizes platforms from pasted account links or copied profile text.",
-      "Extracts account name, intro, followers, average views or reads, and recent content titles when available.",
+      "Uses platform + account name as the stable main input path.",
+      "Optionally organizes pasted intro, followers, average views or reads, and recent content titles when available.",
       "Generates a structured account diagnosis report with scoring and problem tags.",
       "Provides profile optimization, title ideas, content directions, and conversion scripts.",
       "Includes reserved Basic, Standard, and Advanced report tiers.",
     ],
     featuresZh: [
-      "识别用户粘贴的小红书、抖音、B站、视频号、公众号等账号信息。",
-      "尽量提取账号名称、简介、粉丝数、平均播放/阅读和近期内容标题。",
+      "以平台 + 账号名作为稳定主输入，不强依赖主页链接。",
+      "可选整理账号简介、粉丝数、平均播放/阅读和近期内容标题。",
       "生成账号综合评分、定位诊断、问题标签和主页优化建议。",
       "提供爆款内容方向、标题建议、7天/30天计划和私域转化话术。",
       "预留基础版、标准版、高级版三种报告权益。",
@@ -792,12 +792,12 @@ export const demoAgents: DemoAgent[] = [
       {
         question: "Does it automatically crawl platform data?",
         answer:
-          "It only performs lightweight public-page reading for title, meta description, OG title, and visible text snippets when accessible. It does not fetch follower lists, comments, full work lists, log in, or bypass restrictions.",
+          "No. The main path is platform + account name/ID plus the information you provide. Links are optional references and are not guaranteed to be readable.",
       },
       {
         question: "What platforms can it recognize?",
         answer:
-          "It can infer common platforms such as Xiaohongshu, Douyin, Bilibili, WeChat Channels, WeChat Official Accounts, and Kuaishou from URLs and copied text.",
+          "You can choose Xiaohongshu, Douyin, Bilibili, WeChat Channels, WeChat Official Accounts, Kuaishou, Weibo, or Other. Optional links and copied text can still help organize details.",
       },
       {
         question: "Can I export the report?",
@@ -809,12 +809,12 @@ export const demoAgents: DemoAgent[] = [
       {
         question: "它会自动爬取平台数据吗？",
         answer:
-          "第一版只会在可访问时轻量读取公开页面的 title、meta description、OG 信息和页面文本片段。不抓粉丝列表、评论、完整作品列表，不登录平台，也不绕过风控。",
+          "不会。主路径是选择平台并填写账号名/账号ID，再补充你掌握的简介、粉丝数和近期内容。链接只是辅助参考，不保证每个平台都能读取。",
       },
       {
         question: "支持哪些平台信息识别？",
         answer:
-          "可基于 URL 和复制文本识别小红书、抖音、B站、视频号、公众号、快手等常见平台。",
+          "可手动选择小红书、抖音、B站、视频号、公众号、快手、微博或其他平台；可选链接和复制文本会辅助整理信息。",
       },
       {
         question: "报告可以导出吗？",
@@ -823,9 +823,9 @@ export const demoAgents: DemoAgent[] = [
       },
     ],
     setupInstructionsEn:
-      "Paste an account homepage link, content link, copied profile text, recent content titles and performance data, then confirm the core problem, target customer, and optional product or service. Screenshots can be uploaded as reference.",
+      "Select the platform, enter the account name or ID, optionally add a profile link, intro, followers, and recent content data, then confirm the core problem, target customer, and optional product or service. Screenshots can be uploaded as reference.",
     setupInstructionsZh:
-      "粘贴账号主页链接、内容链接、从平台复制的主页信息、近期内容标题和数据，然后确认当前最想解决的问题、目标客户和可选产品/服务。截图可上传作为参考。",
+      "选择平台，填写账号名称或账号ID，可选补充主页链接、简介、粉丝数和近期内容数据，然后确认当前最想解决的问题、目标客户和可选产品/服务。截图可上传作为参考。",
     dataPermissionsEn:
       "The tool uses only the information entered by the user in the current session and local browser storage for draft persistence. It does not access private platform accounts, login sessions, platform APIs, CRM systems, payment data, or customer databases.",
     dataPermissionsZh:
@@ -858,13 +858,13 @@ export const demoAgents: DemoAgent[] = [
       "已经有账号数据，但缺少清晰内容规划和转化路径的运营者。",
     ],
     useCasesEn: [
-      "Paste a profile link and copied account text to identify platform and basic account information.",
+      "Select platform and enter account name/ID to generate a diagnosis without relying on a profile link.",
       "Generate a structured diagnosis report before a content strategy review.",
       "Create 7-day and 30-day growth plans for account iteration.",
       "Draft private message scripts, profile copy, and title optimization ideas.",
     ],
     useCasesZh: [
-      "粘贴主页链接和账号文本，识别平台和基础账号信息。",
+      "选择平台并填写账号名/账号ID，不依赖主页链接也能生成诊断。",
       "在内容策略复盘前生成结构化账号诊断报告。",
       "为账号迭代生成 7 天和 30 天增长计划。",
       "生成私信话术、主页简介和标题优化方向。",
@@ -873,14 +873,14 @@ export const demoAgents: DemoAgent[] = [
       {
         question: "Can I paste a Xiaohongshu profile link?",
         answer:
-          "Yes. Paste the link and any copied profile text. The agent will infer the platform and prefill fields where possible.",
+          "Yes, but links are optional references. Selecting Xiaohongshu and entering the account name or ID is enough to start.",
       },
     ],
     demoSamplesZh: [
       {
         question: "可以直接粘贴小红书主页链接吗？",
         answer:
-          "可以。粘贴链接和从主页复制的文本后，Agent 会判断平台并尽量预填可识别字段。",
+          "可以，但链接只是辅助参考。选择小红书并填写账号名或小红书号，就可以开始生成诊断。",
       },
     ],
     pricingOptionsEn: [
