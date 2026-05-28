@@ -1,4 +1,5 @@
 import express from "express";
+import { createClient } from "@supabase/supabase-js";
 
 const app = express();
 const port = Number(process.env.PORT || 10000);
@@ -6,7 +7,10 @@ const generationQuotaLimit = 5;
 const generationQuotaExceededMessage =
   "为保证生成质量与服务稳定，每个账号每天最多生成 5 次诊断报告。你今天的次数已用完，请明天再试。";
 const providerRateLimitMessage = "当前生成请求较多，请稍后再试。";
-const quotaStore = new Map();
+const loginRequiredMessage = "请先登录后再生成账号诊断报告。";
+const authConfigMissingMessage = "登录服务未配置，请联系管理员检查 Supabase 环境变量。";
+let supabaseAuthClient = null;
+let supabaseServiceClient = null;
 
 const scoreKeys = [
   "positioningClarity",
@@ -81,9 +85,16 @@ app.get("/health", (_request, response) => {
   response.json({ ok: true, service: "media-account-diagnosis-api" });
 });
 
-app.get("/api/generate-report", (request, response) => {
-  const identity = resolveQuotaIdentity(request.query.anonymousDeviceId);
-  response.json({ ok: true, quota: toQuotaResponse(readGenerationQuota(identity)) });
+app.get("/api/generate-report", async (request, response) => {
+  const auth = await requireAuthenticatedUser(request);
+
+  if (!auth.ok) {
+    response.status(auth.status).json({ error: auth.error, ok: false });
+    return;
+  }
+
+  const quota = await getQuotaForUser(auth.user.id);
+  response.json({ ok: true, quota });
 });
 
 app.post("/api/generate-report", async (request, response) => {
@@ -96,17 +107,29 @@ app.post("/api/generate-report", async (request, response) => {
     return;
   }
 
-  const shouldConsumeQuota = payload.consumeQuota !== false;
-  const quotaIdentity = resolveQuotaIdentity(payload.anonymousDeviceId);
-  const quotaBefore = readGenerationQuota(quotaIdentity);
+  const auth = await requireAuthenticatedUser(request);
 
-  if (shouldConsumeQuota && quotaBefore.generationCount >= generationQuotaLimit) {
-    response.status(429).json({
-      error: generationQuotaExceededMessage,
-      ok: false,
-      quota: toQuotaResponse(quotaBefore),
-    });
+  if (!auth.ok) {
+    response.status(auth.status).json({ error: auth.error, ok: false });
     return;
+  }
+
+  const shouldConsumeQuota = payload.consumeQuota !== false;
+  const quotaBefore = await getQuotaForUser(auth.user.id);
+  let hasQuotaReservation = false;
+
+  if (shouldConsumeQuota) {
+    const reservation = await reserveQuotaForUser(auth.user.id);
+    hasQuotaReservation = reservation.allowed;
+
+    if (!reservation.allowed) {
+      response.status(429).json({
+        error: generationQuotaExceededMessage,
+        ok: false,
+        quota: reservation.quota,
+      });
+      return;
+    }
   }
 
   try {
@@ -115,30 +138,54 @@ app.post("/api/generate-report", async (request, response) => {
       form,
       plan: readString(payload.plan) || "advanced",
     });
-    const quotaAfter = shouldConsumeQuota ? incrementGenerationQuota(quotaIdentity) : quotaBefore;
+    const quotaAfter = shouldConsumeQuota
+      ? await completeReservedQuotaForUser(auth.user.id)
+      : quotaBefore;
 
     response.json({
       ok: true,
-      quota: toQuotaResponse(quotaAfter),
+      quota: quotaAfter,
       report,
     });
   } catch (error) {
+    if (hasQuotaReservation) {
+      await releaseReservedQuotaForUser(auth.user.id).catch((releaseError) => {
+        console.error("media_account_quota_release_error", releaseError);
+      });
+    }
+
     if (error instanceof ProviderRateLimitError) {
+      const quota = await getQuotaForUser(auth.user.id);
       response.status(429).json({
         error: providerRateLimitMessage,
         ok: false,
-        quota: toQuotaResponse(quotaBefore),
+        quota,
       });
       return;
     }
 
+    const quota = await getQuotaForUser(auth.user.id);
     console.error("media_account_diagnosis_render_error", error);
     response.status(500).json({
       error: "生成失败，请稍后重试。已保留你填写的内容。",
       ok: false,
-      quota: toQuotaResponse(quotaBefore),
+      quota,
     });
   }
+});
+
+app.use((error, _request, response, _next) => {
+  void _next;
+  console.error("media_account_diagnosis_unhandled_error", error);
+
+  if (response.headersSent) {
+    return;
+  }
+
+  response.status(500).json({
+    error: "生成失败，请稍后重试。已保留你填写的内容。",
+    ok: false,
+  });
 });
 
 app.listen(port, () => {
@@ -177,6 +224,136 @@ function getAllowedOrigins() {
   return origins.length ? origins : ["*"];
 }
 
+async function requireAuthenticatedUser(request) {
+  const token = getBearerToken(request);
+
+  if (!token) {
+    return { error: loginRequiredMessage, ok: false, status: 401 };
+  }
+
+  const authClient = getSupabaseAuthClient();
+  const serviceClient = getSupabaseServiceClient();
+
+  if (!authClient || !serviceClient) {
+    return { error: authConfigMissingMessage, ok: false, status: 503 };
+  }
+
+  const {
+    data: { user },
+    error,
+  } = await authClient.auth.getUser(token);
+
+  if (error || !user) {
+    return { error: loginRequiredMessage, ok: false, status: 401 };
+  }
+
+  return { ok: true, user };
+}
+
+function getBearerToken(request) {
+  const authorization = request.headers.authorization || "";
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || "";
+}
+
+function getSupabaseAuthClient() {
+  if (supabaseAuthClient) return supabaseAuthClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !anonKey) {
+    return null;
+  }
+
+  supabaseAuthClient = createClient(supabaseUrl, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  return supabaseAuthClient;
+}
+
+function getSupabaseServiceClient() {
+  if (supabaseServiceClient) return supabaseServiceClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return null;
+  }
+
+  supabaseServiceClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  return supabaseServiceClient;
+}
+
+async function getQuotaForUser(userId) {
+  const quota = await callQuotaRpc("get_media_account_report_quota", userId);
+  return normalizeQuotaResponse(quota);
+}
+
+async function reserveQuotaForUser(userId) {
+  const quota = await callQuotaRpc("reserve_media_account_report_generation", userId);
+  const normalizedQuota = normalizeQuotaResponse(quota);
+
+  return {
+    allowed: Boolean(firstRow(quota)?.allowed),
+    quota: normalizedQuota,
+  };
+}
+
+async function completeReservedQuotaForUser(userId) {
+  const quota = await callQuotaRpc("complete_media_account_report_generation", userId);
+  return normalizeQuotaResponse(quota);
+}
+
+async function releaseReservedQuotaForUser(userId) {
+  const quota = await callQuotaRpc("release_media_account_report_generation", userId);
+  return normalizeQuotaResponse(quota);
+}
+
+async function callQuotaRpc(functionName, userId) {
+  const serviceClient = getSupabaseServiceClient();
+
+  if (!serviceClient) {
+    throw new Error("Supabase service role is required for generation quotas.");
+  }
+
+  const { data, error } = await serviceClient.rpc(functionName, {
+    p_generation_date: getLocalDateKey(),
+    p_limit: generationQuotaLimit,
+    p_user_id: userId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+function firstRow(data) {
+  if (Array.isArray(data)) return data[0] ?? null;
+  return data ?? null;
+}
+
+function normalizeQuotaResponse(data) {
+  const row = firstRow(data);
+  const date = readString(row?.generation_date) || getLocalDateKey();
+  const generationCount = Math.max(0, Number(row?.generation_count) || 0);
+  const reservedCount = Math.max(0, Number(row?.reserved_count) || 0);
+  const limit = Math.max(1, Number(row?.limit_count) || generationQuotaLimit);
+  const remaining = Math.max(0, limit - generationCount - reservedCount);
+
+  return {
+    date,
+    generationCount,
+    limit,
+    remaining,
+  };
+}
+
 function validateInput(form) {
   const account = readRecord(form.account);
   const recognition = readRecord(form.recognition);
@@ -198,53 +375,12 @@ function validateInput(form) {
   return "";
 }
 
-function resolveQuotaIdentity(anonymousDeviceId) {
-  const deviceId = readString(anonymousDeviceId).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80);
-  return `device:${deviceId || "missing"}`;
-}
-
 function getLocalDateKey() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
-
-function readGenerationQuota(identity) {
-  const today = getLocalDateKey();
-  const key = `${identity}:${today}`;
-  const quota = quotaStore.get(key);
-
-  if (!quota || quota.date !== today) {
-    const nextQuota = { date: today, generationCount: 0 };
-    quotaStore.set(key, nextQuota);
-    return nextQuota;
-  }
-
-  return quota;
-}
-
-function incrementGenerationQuota(identity) {
-  const today = getLocalDateKey();
-  const key = `${identity}:${today}`;
-  const current = readGenerationQuota(identity);
-  const nextQuota = {
-    date: today,
-    generationCount: Math.min(generationQuotaLimit, current.generationCount + 1),
-  };
-
-  quotaStore.set(key, nextQuota);
-  return nextQuota;
-}
-
-function toQuotaResponse(quota) {
-  return {
-    date: quota.date,
-    generationCount: quota.generationCount,
-    limit: generationQuotaLimit,
-    remaining: Math.max(0, generationQuotaLimit - quota.generationCount),
-  };
 }
 
 async function generateWithProvider({ focus, form, plan }) {

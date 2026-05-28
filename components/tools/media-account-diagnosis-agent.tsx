@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import type { AccountParserResult } from "@/lib/tools/account-parser";
 import { useAuth } from "@/components/auth/auth-provider";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type RecentContent = {
@@ -125,6 +126,7 @@ const generationQuotaLimit = 5;
 const generationQuotaKeyPrefix = "media-account-diagnosis-agent:generation-quota";
 const generationQuotaExceededMessage =
   "为保证生成质量与服务稳定，每个账号每天最多生成 5 次诊断报告。你今天的次数已用完，请明天再试。";
+const loginRequiredMessage = "请先登录后再生成账号诊断报告。";
 const reportApiBaseUrl = normalizeReportApiBaseUrl(process.env.NEXT_PUBLIC_REPORT_API_BASE_URL);
 
 const scoreLabels: Record<string, string> = {
@@ -607,6 +609,25 @@ function getGenerateReportEndpoint(queryString = "") {
   return queryString ? `${endpoint}?${queryString}` : endpoint;
 }
 
+async function getReportRequestHeaders() {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const supabase = createSupabaseBrowserClient();
+
+  if (!supabase) {
+    return headers;
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session?.access_token) {
+    headers.Authorization = `Bearer ${session.access_token}`;
+  }
+
+  return headers;
+}
+
 async function requestDiagnosisReport({
   anonymousDeviceId,
   consumeQuota,
@@ -620,9 +641,10 @@ async function requestDiagnosisReport({
   form: DiagnosisForm;
   plan: PlanId;
 }) {
+  const headers = await getReportRequestHeaders();
   const response = await fetch(getGenerateReportEndpoint(), {
     body: JSON.stringify({ anonymousDeviceId, consumeQuota, focus, form, plan }),
-    headers: { "Content-Type": "application/json" },
+    headers,
     method: "POST",
   });
   const payload = (await response.json()) as {
@@ -649,7 +671,8 @@ async function requestGenerationQuota(anonymousDeviceId: string) {
   const params = new URLSearchParams({ anonymousDeviceId });
 
   try {
-    const response = await fetch(getGenerateReportEndpoint(params.toString()));
+    const headers = await getReportRequestHeaders();
+    const response = await fetch(getGenerateReportEndpoint(params.toString()), { headers });
     const payload = (await response.json()) as {
       ok?: boolean;
       quota?: GenerationQuotaResponse;
@@ -1028,6 +1051,13 @@ export function MediaAccountDiagnosisAgent() {
     options: { consumeQuota?: boolean } = {},
   ) {
     const shouldConsumeQuota = options.consumeQuota ?? true;
+    if (shouldConsumeQuota && !user) {
+      setError(loginRequiredMessage);
+      setToast(loginRequiredMessage);
+      setActiveStep(3);
+      return;
+    }
+
     const validationError = validate(formOverride);
     if (validationError) {
       setError(validationError);
