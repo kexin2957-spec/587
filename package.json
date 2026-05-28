@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node server/start-next.mjs",
     "start:api": "node server/render-api.mjs",
     "lint": "eslint",
     "test:account-parser": "node --experimental-strip-types --test tests/account-parser.test.mjs",
