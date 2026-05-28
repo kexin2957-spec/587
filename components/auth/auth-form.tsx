@@ -47,13 +47,14 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
 
     try {
       if (isSignUp) {
+        const nextPath = getSafeNextPath();
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
           options: {
             data: {
               display_name: displayName.trim() || email.trim(),
             },
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: `${getAuthRedirectBaseUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`,
           },
           password,
         });
@@ -64,7 +65,7 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
 
         if (data.session) {
           await refreshAuth();
-          router.push(getSafeNextPath());
+          router.push(nextPath);
           router.refresh();
           return;
         }
@@ -214,6 +215,16 @@ function getSafeNextPath() {
   }
 
   return "/marketplace";
+}
+
+function getAuthRedirectBaseUrl() {
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "");
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  return window.location.origin;
 }
 
 function getAuthErrorMessage(
