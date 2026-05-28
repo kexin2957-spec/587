@@ -8,7 +8,7 @@ services:
     autoDeploy: true
     envVars:
       - key: NEXT_PUBLIC_SITE_URL
-        value: https://ai-agent-marketplace.onrender.com
+        value: https://ai-agent-marketplace-tg4f.onrender.com
       - key: NEXT_PUBLIC_REPORT_API_BASE_URL
         value: https://media-account-diagnosis-api.onrender.com
       - key: NEXT_PUBLIC_SUPABASE_URL
@@ -18,7 +18,7 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: REPORT_API_ALLOWED_ORIGINS
-        value: https://ai-agent-marketplace.onrender.com
+        value: https://ai-agent-marketplace-tg4f.onrender.com
 
   - type: web
     name: media-account-diagnosis-api
