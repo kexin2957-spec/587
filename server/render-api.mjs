@@ -91,7 +91,17 @@ app.use(applyCors);
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/health", (_request, response) => {
-  response.json({ ok: true, service: "media-account-diagnosis-api" });
+  response.json({
+    aiProvider: process.env.AI_PROVIDER || "moonshot",
+    authConfigured: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL),
+    corsOrigins: getAllowedOrigins(),
+    hasAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY),
+    hasMoonshotKey: Boolean(process.env.MOONSHOT_API_KEY),
+    hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    ok: true,
+    service: "media-account-diagnosis-api",
+    supabaseHost: getSupabaseHost(),
+  });
 });
 
 app.get("/api/generate-report", async (request, response) => {
@@ -288,6 +298,18 @@ function getSupabaseAuthClient() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   return supabaseAuthClient;
+}
+
+function getSupabaseHost() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+
+  if (!supabaseUrl) return "";
+
+  try {
+    return new URL(supabaseUrl).host;
+  } catch {
+    return "invalid-url";
+  }
 }
 
 function getSupabaseServiceClient() {

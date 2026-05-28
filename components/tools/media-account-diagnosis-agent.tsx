@@ -734,8 +734,16 @@ async function getReportRequestHeaders() {
   }
 
   const {
-    data: { session },
+    data: { session: currentSession },
   } = await supabase.auth.getSession();
+  let session = currentSession;
+
+  if (!session?.access_token) {
+    const {
+      data: { session: refreshedSession },
+    } = await supabase.auth.refreshSession();
+    session = refreshedSession;
+  }
 
   if (session?.access_token) {
     headers.Authorization = `Bearer ${session.access_token}`;
@@ -762,6 +770,10 @@ async function requestDiagnosisReport({
   }
 
   const headers = await getReportRequestHeaders();
+  if (consumeQuota && !headers.Authorization) {
+    throw new DiagnosisReportRequestError("登录状态已过期，请退出后重新登录。");
+  }
+
   const diagnosisInput = createReportInput(form);
   let response: Response;
 
