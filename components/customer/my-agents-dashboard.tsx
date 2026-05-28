@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -610,6 +611,17 @@ function UserAgentCard({
   return (
     <article className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-950/[0.08] ${grid ? "" : "md:grid md:grid-cols-[minmax(0,1fr)_220px] md:items-center md:gap-4"}`}>
       <div>
+        {grid && agent.iconUrl ? (
+          <div className="relative mb-4 aspect-video overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+            <Image
+              alt={`${agent.agentName} 商品封面`}
+              className="object-cover"
+              fill
+              sizes="(max-width: 768px) 100vw, 420px"
+              src={agent.iconUrl}
+            />
+          </div>
+        ) : null}
         <div className="flex items-start gap-3">
           <input
             checked={selected}
@@ -617,12 +629,24 @@ function UserAgentCard({
             onChange={onToggleSelected}
             type="checkbox"
           />
-          <span
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-sm font-bold text-white"
-            style={{ background: iconBackground }}
-          >
-            {agent.agentName.slice(0, 2)}
-          </span>
+          {agent.iconUrl ? (
+            <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+              <Image
+                alt={`${agent.agentName} 缩略图`}
+                className="object-cover"
+                fill
+                sizes="48px"
+                src={agent.iconUrl}
+              />
+            </span>
+          ) : (
+            <span
+              className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-sm font-bold text-white"
+              style={{ background: iconBackground }}
+            >
+              {agent.agentName.slice(0, 2)}
+            </span>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

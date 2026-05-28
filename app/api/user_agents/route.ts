@@ -111,7 +111,7 @@ function buildUserAgents(userId: string): UserAgentRecord[] {
         category: defaultCategoryBySlug[slug] ?? category?.nameZh ?? "未分类",
         dailyLimit: slug === "media-account-diagnosis-agent" ? 5 : 20,
         description: agent.shortDescriptionZh || agent.shortDescriptionEn,
-        iconUrl: "",
+        iconUrl: getAgentCoverUrl(agent.slug),
         id: `${userId}:${agent.slug}`,
         industry: category?.nameZh ?? agent.categorySlug,
         isFavorite: Boolean(favoriteBySlug[slug]),
@@ -132,6 +132,16 @@ function getLaunchUrl(slug: string, demoUrl: string) {
   }
 
   return demoUrl || `/agents/${slug}#live-demo`;
+}
+
+function getAgentCoverUrl(slug: string) {
+  const coverBySlug: Record<string, string> = {
+    "ecommerce-product-support-agent": "/agents/ecommerce-product-support-agent-cover.png",
+    "media-account-diagnosis-agent": "/agents/media-account-diagnosis-agent-cover.png",
+    "website-customer-support-agent": "/agents/website-customer-support-agent-cover.png",
+  };
+
+  return coverBySlug[slug] ?? "";
 }
 
 function getUseCase(slug: string) {

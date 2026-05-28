@@ -185,6 +185,16 @@ export function AgentCover({
     );
   }
 
+  if (agent.slug === "media-account-diagnosis-agent") {
+    return (
+      <PhotoAgentCover
+        className={className}
+        imageSrc="/agents/media-account-diagnosis-agent-cover.png"
+        title={title}
+      />
+    );
+  }
+
   const theme = coverThemes[agent.categorySlug] ?? defaultTheme;
   const initials = getInitials(title);
 
