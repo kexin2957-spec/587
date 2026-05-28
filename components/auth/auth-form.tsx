@@ -69,7 +69,7 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
           return;
         }
 
-        setSuccess(t("auth.signUpSuccess"));
+        setSuccess(t("auth.emailConfirmationRequired"));
         return;
       }
 
@@ -86,9 +86,7 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
       router.push(getSafeNextPath());
       router.refresh();
     } catch (submitError) {
-      setError(
-        submitError instanceof Error ? submitError.message : t("auth.authFailed"),
-      );
+      setError(getAuthErrorMessage(submitError, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -216,4 +214,21 @@ function getSafeNextPath() {
   }
 
   return "/marketplace";
+}
+
+function getAuthErrorMessage(
+  error: unknown,
+  t: (key: string) => string,
+) {
+  const message = error instanceof Error ? error.message : "";
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("email not confirmed") ||
+    normalizedMessage.includes("email_not_confirmed")
+  ) {
+    return t("auth.emailNotConfirmed");
+  }
+
+  return message || t("auth.authFailed");
 }
