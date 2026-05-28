@@ -124,9 +124,9 @@ const storageKey = "media-account-diagnosis-agent:marketplace:v1";
 const anonymousDeviceIdStorageKey = "media-account-diagnosis-agent:anonymous-device-id";
 const generationQuotaLimit = 5;
 const generationQuotaKeyPrefix = "media-account-diagnosis-agent:generation-quota";
-const generationQuotaExceededMessage =
-  "为保证生成质量与服务稳定，每个账号每天最多生成 5 次诊断报告。你今天的次数已用完，请明天再试。";
-const loginRequiredMessage = "请先登录后再生成账号诊断报告。";
+const generationQuotaExceededMessage = "你今天的 5 次生成次数已用完，请明天再试。";
+const loginRequiredMessage = "请先登录后再使用账号诊断 Agent。";
+const reportApiNotConfiguredMessage = "生成接口未配置，请联系管理员配置 Render API 地址。";
 const reportApiBaseUrl = normalizeReportApiBaseUrl(process.env.NEXT_PUBLIC_REPORT_API_BASE_URL);
 
 const scoreLabels: Record<string, string> = {
@@ -641,6 +641,10 @@ async function requestDiagnosisReport({
   form: DiagnosisForm;
   plan: PlanId;
 }) {
+  if (!reportApiBaseUrl) {
+    throw new DiagnosisReportRequestError(reportApiNotConfiguredMessage);
+  }
+
   const headers = await getReportRequestHeaders();
   const response = await fetch(getGenerateReportEndpoint(), {
     body: JSON.stringify({ anonymousDeviceId, consumeQuota, focus, form, plan }),
@@ -668,6 +672,10 @@ async function requestDiagnosisReport({
 }
 
 async function requestGenerationQuota(anonymousDeviceId: string) {
+  if (!reportApiBaseUrl) {
+    return null;
+  }
+
   const params = new URLSearchParams({ anonymousDeviceId });
 
   try {
@@ -711,7 +719,7 @@ async function requestAccountParse(form: DiagnosisForm) {
 }
 
 export function MediaAccountDiagnosisAgent() {
-  const { user } = useAuth();
+  const { isLoading: isAuthLoading, user } = useAuth();
   const quotaUserId = user?.id ?? null;
   const [anonymousDeviceId] = useState(() => getAnonymousDeviceId());
   const quotaIdentity = quotaUserId ? `user:${quotaUserId}` : `device:${anonymousDeviceId || "anonymous"}`;
@@ -766,11 +774,11 @@ export function MediaAccountDiagnosisAgent() {
   }, [form, isStorageReady, plan, report]);
 
   useEffect(() => {
-    if (!isStorageReady) return;
+    if (!isStorageReady || !user) return;
     void requestGenerationQuota(anonymousDeviceId || getAnonymousDeviceId()).then((quota) => {
       if (quota) syncGenerationQuota(quota);
     });
-  }, [anonymousDeviceId, isStorageReady, quotaIdentity, syncGenerationQuota]);
+  }, [anonymousDeviceId, isStorageReady, quotaIdentity, syncGenerationQuota, user]);
 
   useEffect(() => {
     if (!toast) return;
@@ -783,7 +791,7 @@ export function MediaAccountDiagnosisAgent() {
     hasHydratedFromStorage.current = true;
     window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("sample") !== "1") {
+      if (params.get("sample") !== "1" || !user) {
         const stored = readStoredState();
         setForm(stored.form);
         setPlan(stored.plan);
@@ -823,7 +831,7 @@ export function MediaAccountDiagnosisAgent() {
           setIsStorageReady(true);
         });
     }, 0);
-  }, [syncGenerationQuota]);
+  }, [syncGenerationQuota, user]);
 
   function updateAccount(key: keyof DiagnosisForm["account"], value: string) {
     setForm((current) => ({
@@ -1138,6 +1146,14 @@ export function MediaAccountDiagnosisAgent() {
     void generateReport("full", sample, "advanced", { consumeQuota: false });
   }
 
+  if (isAuthLoading) {
+    return <DiagnosisAuthGate isLoading />;
+  }
+
+  if (!user) {
+    return <DiagnosisAuthGate />;
+  }
+
   const recognizedRows = [
     ["平台", form.account.platform || "待补充"],
     ["账号名称", form.account.name || "待补充"],
@@ -1336,6 +1352,48 @@ export function MediaAccountDiagnosisAgent() {
         {toast}
       </div>
     </div>
+  );
+}
+
+function DiagnosisAuthGate({ isLoading = false }: { isLoading?: boolean }) {
+  return (
+    <main className="bg-slate-50">
+      <section className="border-b border-slate-200/80 bg-white/88">
+        <div className="app-container py-12 sm:py-14 lg:py-16">
+          <div className="max-w-4xl">
+            <p className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-800 shadow-sm">
+              New Media Growth Agent
+            </p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+              新媒体账号体检 Agent
+            </h1>
+            <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
+              粘贴账号信息，AI 自动生成账号评分、内容问题、主页优化、爆款机会、7天/30天增长计划和私域转化话术。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="app-container py-10">
+        <div className="premium-card max-w-2xl p-6 sm:p-8">
+          <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">登录后使用</p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+            {isLoading ? "正在确认登录状态..." : loginRequiredMessage}
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            每个登录账号每天可生成 5 次账号诊断报告，次数由后端数据库记录。
+          </p>
+          {!isLoading ? (
+            <a
+              className="mt-6 inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-slate-950/20 hover:bg-slate-800"
+              href="/sign-in?next=/tools/media-account-diagnosis"
+            >
+              去登录
+            </a>
+          ) : null}
+        </div>
+      </section>
+    </main>
   );
 }
 

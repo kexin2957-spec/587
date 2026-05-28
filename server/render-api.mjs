@@ -3,11 +3,11 @@ import { createClient } from "@supabase/supabase-js";
 
 const app = express();
 const port = Number(process.env.PORT || 10000);
+const agentSlug = "media-account-diagnosis";
 const generationQuotaLimit = 5;
-const generationQuotaExceededMessage =
-  "为保证生成质量与服务稳定，每个账号每天最多生成 5 次诊断报告。你今天的次数已用完，请明天再试。";
+const generationQuotaExceededMessage = "你今天的 5 次生成次数已用完，请明天再试。";
 const providerRateLimitMessage = "当前生成请求较多，请稍后再试。";
-const loginRequiredMessage = "请先登录后再生成账号诊断报告。";
+const loginRequiredMessage = "请先登录后再使用账号诊断 Agent。";
 const authConfigMissingMessage = "登录服务未配置，请联系管理员检查 Supabase 环境变量。";
 let supabaseAuthClient = null;
 let supabaseServiceClient = null;
@@ -289,12 +289,12 @@ function getSupabaseServiceClient() {
 }
 
 async function getQuotaForUser(userId) {
-  const quota = await callQuotaRpc("get_media_account_report_quota", userId);
+  const quota = await callQuotaRpc("get_agent_generation_usage", userId);
   return normalizeQuotaResponse(quota);
 }
 
 async function reserveQuotaForUser(userId) {
-  const quota = await callQuotaRpc("reserve_media_account_report_generation", userId);
+  const quota = await callQuotaRpc("reserve_agent_generation", userId);
   const normalizedQuota = normalizeQuotaResponse(quota);
 
   return {
@@ -304,12 +304,12 @@ async function reserveQuotaForUser(userId) {
 }
 
 async function completeReservedQuotaForUser(userId) {
-  const quota = await callQuotaRpc("complete_media_account_report_generation", userId);
+  const quota = await callQuotaRpc("complete_agent_generation", userId);
   return normalizeQuotaResponse(quota);
 }
 
 async function releaseReservedQuotaForUser(userId) {
-  const quota = await callQuotaRpc("release_media_account_report_generation", userId);
+  const quota = await callQuotaRpc("release_agent_generation", userId);
   return normalizeQuotaResponse(quota);
 }
 
@@ -321,8 +321,9 @@ async function callQuotaRpc(functionName, userId) {
   }
 
   const { data, error } = await serviceClient.rpc(functionName, {
-    p_generation_date: getLocalDateKey(),
+    p_agent_slug: agentSlug,
     p_limit: generationQuotaLimit,
+    p_usage_date: getLocalDateKey(),
     p_user_id: userId,
   });
 
@@ -340,7 +341,7 @@ function firstRow(data) {
 
 function normalizeQuotaResponse(data) {
   const row = firstRow(data);
-  const date = readString(row?.generation_date) || getLocalDateKey();
+  const date = readString(row?.usage_date) || getLocalDateKey();
   const generationCount = Math.max(0, Number(row?.generation_count) || 0);
   const reservedCount = Math.max(0, Number(row?.reserved_count) || 0);
   const limit = Math.max(1, Number(row?.limit_count) || generationQuotaLimit);
