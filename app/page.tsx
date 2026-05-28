@@ -47,19 +47,19 @@ export default function Home() {
     language === "zh"
       ? {
           description:
-            "无需从零开发，即可拥有网站客服、销售获客、电商客服和定制 AI 工作流。",
+            "无需从零开发，即可拥有网站客服、销售获客、电商客服、新媒体账号体检和定制 AI 工作流。",
           launchDescription:
-            "先从已经标准化的两个业务 Agent 开始：一个负责网站销售获客，一个负责电商商品咨询与购买意向收集。",
-          launchTitle: "两个可立即上线的 Agent",
+            "先从已经标准化的三个业务 Agent 开始：网站销售获客、电商商品咨询，以及新媒体账号体检。",
+          launchTitle: "三个可立即上线的 Agent",
           requestCustomAgent: "定制 AI Agent",
           title: "购买现成 AI Agent，快速上线你的业务 AI 员工。",
         }
       : {
           description:
-            "Launch website chatbots, lead capture agents, and custom AI workflows without starting from scratch.",
+            "Launch website chatbots, lead capture agents, social media account diagnosis, and custom AI workflows without starting from scratch.",
           launchDescription:
-            "Start with the two standardized launch products: one for website sales and lead capture, one for e-commerce product support and purchase intent.",
-          launchTitle: "Two launch-ready agents",
+            "Start with three standardized launch products: website sales, e-commerce product support, and social media account diagnosis.",
+          launchTitle: "Three launch-ready agents",
           requestCustomAgent: "Request Custom Agent",
           title: "Buy ready-made AI agents for your business.",
         };
@@ -116,7 +116,7 @@ export default function Home() {
             </Link>
           }
         />
-        <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        <div className="mt-6 grid gap-5 lg:grid-cols-3">
           {launchAgents.map((agent) => (
             <AgentCard key={agent.slug} agent={agent} />
           ))}

@@ -6,12 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:api": "node server/render-api.mjs",
     "lint": "eslint",
+    "test:account-parser": "node --experimental-strip-types --test tests/account-parser.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
+    "express": "^5.2.1",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"

@@ -118,6 +118,13 @@ const coverThemes: Record<string, CoverTheme> = {
     panel: "border-cyan-200/80 bg-white/78",
     text: "text-cyan-950",
   },
+  "social-media-growth": {
+    accent: "bg-blue-500",
+    background: "from-blue-100 via-white to-cyan-100",
+    border: "border-blue-200",
+    panel: "border-blue-200/80 bg-white/78",
+    text: "text-blue-950",
+  },
 };
 
 const defaultTheme: CoverTheme = {

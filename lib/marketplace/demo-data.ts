@@ -103,6 +103,7 @@ export type DemoAgent = {
 export const launchAgentSlugs = [
   "website-customer-support-agent",
   "ecommerce-product-support-agent",
+  "media-account-diagnosis-agent",
 ] as const;
 
 export const demoCategories: DemoCategory[] = [
@@ -168,6 +169,13 @@ export const demoCategories: DemoCategory[] = [
     nameZh: "内容创作",
     descriptionEn: "Agents for writing, summarization, and media workflows.",
     descriptionZh: "用于写作、总结和媒体工作流的 Agent。",
+  },
+  {
+    slug: "social-media-growth",
+    nameEn: "Social Media Growth",
+    nameZh: "新媒体增长",
+    descriptionEn: "Agents for account diagnosis, content planning, and conversion growth.",
+    descriptionZh: "用于账号诊断、内容规划和转化增长的 Agent。",
   },
   {
     slug: "research-analysis",
@@ -754,6 +762,151 @@ export const demoAgents: DemoAgent[] = [
       "Professional SaaS/e-commerce cover: online store product cards, shopping cart, AI chat assistant, purchase-intent lead card, soft emerald-cyan gradient, premium business style.",
     coverImageStyleZh:
       "专业 SaaS/电商风格封面：线上商店商品卡片、购物车、AI 聊天助手、购买意向线索卡片，柔和绿色-青色渐变，商务高级感。",
+  },
+  {
+    slug: "media-account-diagnosis-agent",
+    titleEn: "Social Media Account Diagnosis Agent",
+    titleZh: "新媒体账号体检 Agent",
+    shortDescriptionEn:
+      "Find the core reasons why an account is not growing, converting, or closing customers.",
+    shortDescriptionZh: "找出不涨粉、不转化、不成交的核心问题",
+    descriptionEn:
+      "Paste account information and recent content data. The AI generates account scoring, positioning diagnosis, profile optimization, viral content directions, 7-day and 30-day content plans, and private traffic conversion scripts. It can lightly read public page title/meta/OG text when accessible, and never logs in or bypasses platform restrictions.",
+    descriptionZh:
+      "粘贴账号信息和近期内容，AI 自动生成账号评分、定位诊断、主页优化、爆款方向、7天/30天内容计划和私域转化话术。",
+    featuresEn: [
+      "Recognizes platforms from pasted account links or copied profile text.",
+      "Extracts account name, intro, followers, average views or reads, and recent content titles when available.",
+      "Generates a structured account diagnosis report with scoring and problem tags.",
+      "Provides profile optimization, title ideas, content directions, and conversion scripts.",
+      "Includes reserved Basic, Standard, and Advanced report tiers.",
+    ],
+    featuresZh: [
+      "识别用户粘贴的小红书、抖音、B站、视频号、公众号等账号信息。",
+      "尽量提取账号名称、简介、粉丝数、平均播放/阅读和近期内容标题。",
+      "生成账号综合评分、定位诊断、问题标签和主页优化建议。",
+      "提供爆款内容方向、标题建议、7天/30天计划和私域转化话术。",
+      "预留基础版、标准版、高级版三种报告权益。",
+    ],
+    faqEn: [
+      {
+        question: "Does it automatically crawl platform data?",
+        answer:
+          "It only performs lightweight public-page reading for title, meta description, OG title, and visible text snippets when accessible. It does not fetch follower lists, comments, full work lists, log in, or bypass restrictions.",
+      },
+      {
+        question: "What platforms can it recognize?",
+        answer:
+          "It can infer common platforms such as Xiaohongshu, Douyin, Bilibili, WeChat Channels, WeChat Official Accounts, and Kuaishou from URLs and copied text.",
+      },
+      {
+        question: "Can I export the report?",
+        answer:
+          "Yes. The report can be copied, individual modules can be copied, and the browser print flow can export a PDF.",
+      },
+    ],
+    faqZh: [
+      {
+        question: "它会自动爬取平台数据吗？",
+        answer:
+          "第一版只会在可访问时轻量读取公开页面的 title、meta description、OG 信息和页面文本片段。不抓粉丝列表、评论、完整作品列表，不登录平台，也不绕过风控。",
+      },
+      {
+        question: "支持哪些平台信息识别？",
+        answer:
+          "可基于 URL 和复制文本识别小红书、抖音、B站、视频号、公众号、快手等常见平台。",
+      },
+      {
+        question: "报告可以导出吗？",
+        answer:
+          "可以。支持复制完整报告、复制单个模块，并通过浏览器打印导出 PDF。",
+      },
+    ],
+    setupInstructionsEn:
+      "Paste an account homepage link, content link, copied profile text, recent content titles and performance data, then confirm the core problem, target customer, and optional product or service. Screenshots can be uploaded as reference.",
+    setupInstructionsZh:
+      "粘贴账号主页链接、内容链接、从平台复制的主页信息、近期内容标题和数据，然后确认当前最想解决的问题、目标客户和可选产品/服务。截图可上传作为参考。",
+    dataPermissionsEn:
+      "The tool uses only the information entered by the user in the current session and local browser storage for draft persistence. It does not access private platform accounts, login sessions, platform APIs, CRM systems, payment data, or customer databases.",
+    dataPermissionsZh:
+      "该工具只使用用户在当前页面输入的信息，并通过浏览器本地存储暂存草稿。它不会访问平台私密账号、登录态、平台 API、CRM、支付数据或客户数据库。",
+    categorySlug: "social-media-growth",
+    deliveryType: "hosted_agent",
+    pricingType: "one_time",
+    priceUsd: 14,
+    priceCny: 99,
+    demoUrl: "/tools/media-account-diagnosis",
+    demoEnabled: true,
+    isFeatured: true,
+    isVerified: true,
+    createdAt: "2026-05-27",
+    ownerType: "platform",
+    purchaseCount: 12,
+    installCount: 38,
+    rating: 4.8,
+    reviewCount: 8,
+    supportedLanguages: ["zh"],
+    tags: ["账号诊断", "内容规划", "私域转化", "小红书/抖音"],
+    targetCustomersEn: [
+      "Creators and founders who need a practical account diagnosis before changing content strategy.",
+      "Small teams selling courses, services, consulting, local business offers, or community products through content accounts.",
+      "Operators who have account data but need a clearer content and conversion plan.",
+    ],
+    targetCustomersZh: [
+      "需要先做账号体检再调整内容策略的博主、创始人和运营者。",
+      "通过内容账号销售课程、服务、咨询、门店套餐或社群产品的小团队。",
+      "已经有账号数据，但缺少清晰内容规划和转化路径的运营者。",
+    ],
+    useCasesEn: [
+      "Paste a profile link and copied account text to identify platform and basic account information.",
+      "Generate a structured diagnosis report before a content strategy review.",
+      "Create 7-day and 30-day growth plans for account iteration.",
+      "Draft private message scripts, profile copy, and title optimization ideas.",
+    ],
+    useCasesZh: [
+      "粘贴主页链接和账号文本，识别平台和基础账号信息。",
+      "在内容策略复盘前生成结构化账号诊断报告。",
+      "为账号迭代生成 7 天和 30 天增长计划。",
+      "生成私信话术、主页简介和标题优化方向。",
+    ],
+    demoSamplesEn: [
+      {
+        question: "Can I paste a Xiaohongshu profile link?",
+        answer:
+          "Yes. Paste the link and any copied profile text. The agent will infer the platform and prefill fields where possible.",
+      },
+    ],
+    demoSamplesZh: [
+      {
+        question: "可以直接粘贴小红书主页链接吗？",
+        answer:
+          "可以。粘贴链接和从主页复制的文本后，Agent 会判断平台并尽量预填可识别字段。",
+      },
+    ],
+    pricingOptionsEn: [
+      "Basic report: From $14. Includes account scoring, positioning diagnosis, profile optimization, and a 7-day plan.",
+      "Standard report: Adds content structure analysis, title optimization, and private traffic scripts.",
+      "Advanced report: Adds competitor analysis, 30-day plan, and monetization path.",
+    ],
+    pricingOptionsZh: [
+      "基础版：¥99 起。包含账号评分、定位诊断、主页优化和 7 天计划。",
+      "标准版：包含内容结构分析、标题优化和私域话术。",
+      "高级版：包含竞品分析、30 天计划和变现路径。",
+    ],
+    customUpgradeOptionsEn: [
+      "Add team-specific diagnosis dimensions.",
+      "Connect to an internal content review workflow.",
+      "Create custom report branding and PDF export templates.",
+    ],
+    customUpgradeOptionsZh: [
+      "增加团队专属诊断维度。",
+      "接入内部内容复盘流程。",
+      "定制报告品牌样式和 PDF 导出模板。",
+    ],
+    coverImageStyleEn:
+      "Clean SaaS analysis cover with social media account cards, score dashboard, content plan timeline, and blue-cyan professional style.",
+    coverImageStyleZh:
+      "简洁 SaaS 分析封面：新媒体账号卡片、评分仪表盘、内容计划时间线，蓝青色专业风格。",
   },
   {
     slug: "real-estate-lead-agent",

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: media-account-diagnosis-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run start:api
+    autoDeploy: true
+    envVars:
+      - key: AI_PROVIDER
+        value: moonshot
+      - key: MOONSHOT_API_KEY
+        sync: false
+      - key: MOONSHOT_BASE_URL
+        value: https://api.moonshot.cn/v1
+      - key: AI_MODEL
+        value: moonshot-v1-8k
+      - key: REPORT_API_ALLOWED_ORIGINS
+        sync: false
