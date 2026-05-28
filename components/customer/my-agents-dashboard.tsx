@@ -250,35 +250,48 @@ export function MyAgentsDashboard() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="app-container py-6 sm:py-8">
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-950/[0.06]">
-          <div className="grid min-h-[720px] lg:grid-cols-[240px_minmax(0,1fr)]">
-            <aside className="border-b border-slate-200 bg-white p-5 lg:border-b-0 lg:border-r">
-              <Link className="flex items-center gap-3" href="/">
-                <span className="grid h-10 w-10 place-items-center rounded-2xl bg-blue-700 text-sm font-bold text-white">
-                  AI
-                </span>
-                <span>
-                  <strong className="block text-sm text-slate-950">AI Agent</strong>
-                  <span className="text-xs font-semibold text-slate-500">Marketplace</span>
-                </span>
+      <section className="border-b border-slate-200/80 bg-white/88">
+        <div className="app-container py-10 sm:py-12">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-800 shadow-sm">
+                Personal Dashboard
+              </p>
+              <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">我的 Agent</h1>
+              <p className="mt-4 text-base leading-7 text-slate-600">
+                登录后统一管理已购买 Agent、分类、收藏和最近使用记录，进入使用页后保持和 Marketplace 一致的工具体验。
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-slate-50" href="/marketplace">
+                浏览 Marketplace
               </Link>
+              <Link className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-950/20 hover:bg-blue-600" href="/tools/media-account-diagnosis">
+                打开新媒体 Agent
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
 
-              <nav className="mt-8 grid gap-1 text-sm font-semibold text-slate-600">
+      <div className="app-container py-8 sm:py-10">
+        <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+            <aside className="premium-card h-fit p-4 lg:sticky lg:top-24">
+              <div className="rounded-2xl bg-slate-950 p-4 text-white">
+                <p className="text-sm font-semibold">个人中心</p>
+                <p className="mt-2 truncate text-sm text-slate-300">
+                  {profile?.display_name || user.email || "已登录用户"}
+                </p>
+              </div>
+
+              <nav className="mt-4 grid gap-1 text-sm font-semibold text-slate-600">
                 <SideNavButton active={activeNav === "agents"} label="我的 Agent" onClick={() => setActiveNav("agents")} />
                 <SideNavButton active={activeNav === "favorites"} label="收藏" onClick={() => setActiveNav("favorites")} />
                 <SideNavButton active={activeNav === "settings"} label="设置" onClick={() => setActiveNav("settings")} />
               </nav>
-
-              <div className="mt-8 rounded-2xl bg-blue-50 p-4">
-                <p className="text-sm font-semibold text-slate-950">账号</p>
-                <p className="mt-2 truncate text-sm text-slate-600">
-                  {profile?.display_name || user.email || "已登录用户"}
-                </p>
-              </div>
             </aside>
 
-            <section className="min-w-0 bg-slate-50/80 p-5 sm:p-8">
+            <section className="min-w-0">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Personal Dashboard</p>
@@ -286,14 +299,6 @@ export function MyAgentsDashboard() {
                   <p className="mt-2 text-sm leading-6 text-slate-600">
                     管理已购买 Agent，按分类整理、收藏、搜索，并快速进入使用页。
                   </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-50" href="/marketplace">
-                    浏览 Marketplace
-                  </Link>
-                  <Link className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-950/20 hover:bg-blue-600" href="/tools/media-account-diagnosis">
-                    打开新媒体 Agent
-                  </Link>
                 </div>
               </div>
 
@@ -441,7 +446,6 @@ export function MyAgentsDashboard() {
             </section>
           </div>
         </div>
-      </div>
 
       <div
         className={`fixed bottom-5 left-1/2 z-50 max-w-sm -translate-x-1/2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-xl transition ${

@@ -590,10 +590,12 @@ function createReportInput(form: DiagnosisForm): DiagnosisReportInput {
     .map((item) => item.trim())
     .filter(Boolean)
     .join("\n\n");
+  const inferredAccountId = form.account.accountId.trim() || extractAccountIdFromText(form.account.name);
+  const accountName = normalizeAccountNameValue(form.account.name, inferredAccountId);
 
   return {
-    accountId: form.account.accountId.trim() || undefined,
-    accountName: form.account.name.trim(),
+    accountId: inferredAccountId || undefined,
+    accountName: accountName || inferredAccountId,
     bio: form.account.intro.trim() || undefined,
     followers: form.account.followers.trim() || undefined,
     goal:
@@ -657,16 +659,55 @@ function FieldLabel({ children }: { children: ReactNode }) {
 
 function getAccountNamePlaceholder(platform: string) {
   const placeholders: Record<string, string> = {
-    B站: "例如：B站昵称或 UID：123456",
+    B站: "例如：科技增长笔记",
     公众号: "例如：公众号名称：增长研究所",
-    小红书: "例如：小红书号：xxxx 或账号昵称",
-    微博: "例如：微博昵称或主页 ID",
-    快手: "例如：快手号：xxxx",
-    抖音: "例如：抖音号：xxxx 或账号昵称",
+    小红书: "例如：一只做内容的小张",
+    微博: "例如：品牌主理人小林",
+    快手: "例如：同城生活小周",
+    抖音: "例如：AI效率研究所",
     视频号: "例如：视频号名称：xxxx",
   };
 
-  return placeholders[platform] ?? "例如：平台账号名、账号ID、昵称";
+  return placeholders[platform] ?? "例如：平台账号名、昵称";
+}
+
+function getAccountIdPlaceholder(platform: string) {
+  const placeholders: Record<string, string> = {
+    B站: "例如：B站 UID：123456",
+    公众号: "例如：公众号原始ID gh_xxxx，可不填",
+    小红书: "例如：小红书号：red_2026",
+    微博: "例如：微博 UID 或主页 ID",
+    快手: "例如：快手号：ks_xxxx",
+    抖音: "例如：抖音号：douyin_2026",
+    视频号: "例如：视频号 ID，可不填",
+  };
+
+  return placeholders[platform] ?? "例如：平台号、UID、账号ID";
+}
+
+function extractAccountIdFromText(value: string) {
+  const text = value.trim();
+  if (!text) return "";
+
+  const labeledMatch = text.match(
+    /(?:小红书号|抖音号|快手号|视频号|B站\s*UID|B站UID|UID|账号\s*ID|平台号|ID)\s*[:：]?\s*([A-Za-z0-9._-]{2,})/i,
+  );
+  if (labeledMatch?.[1]) return labeledMatch[1].trim();
+
+  if (/^[A-Za-z0-9._-]{5,}$/.test(text) && /[\d._-]/.test(text)) return text;
+  return "";
+}
+
+function normalizeAccountNameValue(value: string, accountId = "") {
+  const text = value.trim();
+  if (!text) return "";
+
+  const withoutLabel = text
+    .replace(/^(?:小红书号|抖音号|快手号|视频号|B站\s*UID|B站UID|UID|账号\s*ID|平台号|ID)\s*[:：]?\s*/i, "")
+    .trim();
+
+  if (accountId && withoutLabel === accountId) return "";
+  return withoutLabel || text;
 }
 
 function normalizeReportApiBaseUrl(value: string | undefined) {
@@ -998,10 +1039,11 @@ export function MediaAccountDiagnosisAgent() {
   }
 
   async function recognizeAccountWithParser() {
+    const inferredAccountId = form.account.accountId || extractAccountIdFromText(form.account.name);
     const raw = [
       form.account.platform ? `平台：${form.account.platform}` : "",
-      form.account.name ? `账号名称或账号ID：${form.account.name}` : "",
-      form.account.accountId ? `平台账号ID：${form.account.accountId}` : "",
+      form.account.name ? `账号名称：${form.account.name}` : "",
+      inferredAccountId ? `平台账号ID：${inferredAccountId}` : "",
       form.account.intro ? `简介：${form.account.intro}` : "",
       form.account.followers ? `粉丝数：${form.account.followers}` : "",
       form.account.avgViews ? `平均播放/阅读：${form.account.avgViews}` : "",
@@ -1040,8 +1082,8 @@ export function MediaAccountDiagnosisAgent() {
       const field = inferField(raw);
       const notes = [
         form.account.platform ? `平台：${form.account.platform}` : "",
-        form.account.name ? `账号名称或账号ID：${form.account.name}` : "",
-        form.account.accountId ? `平台账号ID：${form.account.accountId}` : "",
+        form.account.name ? `账号名称：${form.account.name}` : "",
+        inferredAccountId ? `平台账号ID：${inferredAccountId}` : "",
         field ? `已推断领域：${field}` : "",
         form.recognition.screenshotName
           ? `已记录截图：${form.recognition.screenshotName}。截图识别功能后续上线，当前请优先填写账号名和主页信息。`
@@ -1053,6 +1095,7 @@ export function MediaAccountDiagnosisAgent() {
         ...current,
         account: {
           ...current.account,
+          accountId: current.account.accountId || inferredAccountId,
           field: current.account.field || field,
         },
         recognition: {
@@ -1283,9 +1326,11 @@ export function MediaAccountDiagnosisAgent() {
     return <DiagnosisAuthGate />;
   }
 
+  const inferredAccountId = form.account.accountId || extractAccountIdFromText(form.account.name);
   const recognizedRows = [
     ["平台", form.account.platform || "待补充"],
-    ["账号名称/ID", form.account.name || form.account.accountId || "待补充"],
+    ["账号名称", normalizeAccountNameValue(form.account.name, inferredAccountId) || "待补充"],
+    ["账号ID", inferredAccountId || "待补充"],
     ["账号简介", form.account.intro || "待补充"],
     ["粉丝数", form.account.followers || "待补充"],
     ["近期内容数量", `${form.recentContents.filter(hasRecentContent).length} 条`],
@@ -1305,7 +1350,7 @@ export function MediaAccountDiagnosisAgent() {
               新媒体账号体检 Agent
             </h1>
             <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-              选择平台并填写账号名，AI 会结合你补充的简介、粉丝数和近期内容，生成账号诊断报告。
+              选择平台并填写账号名或账号ID，AI 会结合你补充的简介、粉丝数和近期内容，生成账号诊断报告。
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <button
@@ -1496,7 +1541,7 @@ function DiagnosisAuthGate({ isLoading = false }: { isLoading?: boolean }) {
               新媒体账号体检 Agent
             </h1>
             <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-              选择平台并填写账号名，AI 会结合你补充的简介、粉丝数和近期内容，生成账号诊断报告。
+              选择平台并填写账号名或账号ID，AI 会结合你补充的简介、粉丝数和近期内容，生成账号诊断报告。
             </p>
           </div>
         </div>
@@ -1610,12 +1655,12 @@ function StepOne({
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Step 1</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">填写账号信息</h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            不需要复制复杂链接，填写平台账号名即可。若你愿意，也可以补充主页简介、粉丝数和近期内容，让报告更精准。
+            不需要复制复杂链接，填写平台账号名或平台号即可。若你愿意，也可以补充主页简介、粉丝数和近期内容，让报告更精准。
           </p>
         </div>
 
         <div className="mt-6 grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)]">
             <SelectField
               label="选择平台 *"
               onChange={(value) => onUpdateAccount("platform", value)}
@@ -1623,15 +1668,27 @@ function StepOne({
               value={form.account.platform}
             />
             <TextField
-              label="账号名称或账号ID *"
-              onChange={(value) => onUpdateAccount("name", value)}
+              label="账号名称/昵称"
+              onChange={(value) => {
+                onUpdateAccount("name", value);
+                const parsedAccountId = extractAccountIdFromText(value);
+                if (parsedAccountId && !form.account.accountId) {
+                  onUpdateAccount("accountId", parsedAccountId);
+                }
+              }}
               placeholder={getAccountNamePlaceholder(form.account.platform)}
               value={form.account.name}
+            />
+            <TextField
+              label="账号ID / 平台号"
+              onChange={(value) => onUpdateAccount("accountId", value)}
+              placeholder={getAccountIdPlaceholder(form.account.platform)}
+              value={form.account.accountId}
             />
           </div>
 
           <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
-            选择平台并填写账号名，AI 会结合你补充的简介、粉丝数和近期内容，生成账号诊断报告。
+            账号名称和账号ID二选一即可；如果你知道小红书号、抖音号、B站 UID 等平台号，优先填账号ID会更稳定。
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -1729,7 +1786,7 @@ function StepOne({
         </button>
         {!hasRecognitionSummary ? (
           <p className="mt-3 text-sm leading-6 text-slate-500">
-            只填写平台和账号名也可以进入下一步，补充简介和内容数据会让报告更精准。
+            只填写平台和账号名或账号ID也可以进入下一步，补充简介和内容数据会让报告更精准。
           </p>
         ) : null}
       </aside>
@@ -1987,8 +2044,18 @@ function AdvancedDrawer({
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextField label="账号名称" onChange={(value) => onUpdateAccount("name", value)} value={form.account.name} />
-                <TextField label="平台账号ID（可选）" onChange={(value) => onUpdateAccount("accountId", value)} value={form.account.accountId} />
+                <TextField
+                  label="账号名称/昵称"
+                  onChange={(value) => onUpdateAccount("name", value)}
+                  placeholder={getAccountNamePlaceholder(form.account.platform)}
+                  value={form.account.name}
+                />
+                <TextField
+                  label="账号ID / 平台号"
+                  onChange={(value) => onUpdateAccount("accountId", value)}
+                  placeholder={getAccountIdPlaceholder(form.account.platform)}
+                  value={form.account.accountId}
+                />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <TextField label="当前粉丝数" onChange={(value) => onUpdateAccount("followers", value)} value={form.account.followers} />

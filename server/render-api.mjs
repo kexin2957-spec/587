@@ -363,6 +363,9 @@ function normalizeDiagnosisInput(form, input) {
   const account = readRecord(form.account);
   const recognition = readRecord(form.recognition);
   const source = readRecord(input);
+  const rawAccountName = readString(source.accountName) || readString(account.name);
+  const inferredAccountId = readString(source.accountId) || readString(account.accountId) || extractAccountIdFromText(rawAccountName);
+  const accountName = normalizeAccountNameValue(rawAccountName, inferredAccountId);
   const recentContentText = [
     readString(source.recentContentText),
     readString(recognition.rawText),
@@ -372,8 +375,8 @@ function normalizeDiagnosisInput(form, input) {
     .join("\n\n");
 
   return {
-    accountId: readString(source.accountId) || readString(account.accountId),
-    accountName: readString(source.accountName) || readString(account.name),
+    accountId: inferredAccountId,
+    accountName: accountName || inferredAccountId,
     bio: readString(source.bio) || readString(account.intro),
     followers: readString(source.followers) || readString(account.followers),
     goal:
@@ -387,6 +390,31 @@ function normalizeDiagnosisInput(form, input) {
     recentContentText,
     targetAudience: readString(source.targetAudience) || readString(account.targetCustomer) || readString(account.primaryGoal),
   };
+}
+
+function extractAccountIdFromText(value) {
+  const text = readString(value);
+  if (!text) return "";
+
+  const labeledMatch = text.match(
+    /(?:小红书号|抖音号|快手号|视频号|B站\s*UID|B站UID|UID|账号\s*ID|平台号|ID)\s*[:：]?\s*([A-Za-z0-9._-]{2,})/i,
+  );
+  if (labeledMatch?.[1]) return labeledMatch[1].trim();
+
+  if (/^[A-Za-z0-9._-]{5,}$/.test(text) && /[\d._-]/.test(text)) return text;
+  return "";
+}
+
+function normalizeAccountNameValue(value, accountId = "") {
+  const text = readString(value);
+  if (!text) return "";
+
+  const withoutLabel = text
+    .replace(/^(?:小红书号|抖音号|快手号|视频号|B站\s*UID|B站UID|UID|账号\s*ID|平台号|ID)\s*[:：]?\s*/i, "")
+    .trim();
+
+  if (accountId && withoutLabel === accountId) return "";
+  return withoutLabel || text;
 }
 
 function recentContentsToText(contents) {

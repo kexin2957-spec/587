@@ -101,6 +101,7 @@ test("keeps unsupported profile links as unknown platform URLs", () => {
 test("extracts basic fields from ordinary Chinese account text", () => {
   const result = parseAccountInput(`
 账号名称：小林AI提效
+小红书ID：ai_growth_2026
 简介：分享 AI 工具和办公自动化
 粉丝数：8600
 平均播放量：3200
@@ -109,6 +110,7 @@ test("extracts basic fields from ordinary Chinese account text", () => {
 
   assert.equal(result.inputType, "text");
   assert.equal(result.accountName, "小林AI提效");
+  assert.equal(result.accountId, "ai_growth_2026");
   assert.equal(result.bio, "分享 AI 工具和办公自动化");
   assert.equal(result.followers, "8600");
   assert.equal(result.avgViews, "3200");
@@ -119,6 +121,12 @@ test("extracts basic fields from ordinary Chinese account text", () => {
   assert.equal(result.recentPosts[0].comments, "96");
   assert.equal(result.inferredField, "AI");
   assert.ok(result.targetUsers.includes("职场新人"));
+});
+
+test("extracts platform account id labels from copied profile text", () => {
+  assert.equal(parseAccountInput("抖音ID：douyin-growth-01").accountId, "douyin-growth-01");
+  assert.equal(parseAccountInput("B站 UID: 12345678").accountId, "12345678");
+  assert.equal(parseAccountInput("平台号 ks_2026").accountId, "ks_2026");
 });
 
 test("recognizes mixed link and copied profile text", () => {

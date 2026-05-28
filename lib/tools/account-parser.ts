@@ -354,16 +354,7 @@ function parseAccountText(text: string) {
     !extractCandidateUrls(trimmed).length && isLikelyNickname(trimmed) ? trimmed.replace(/^@/, "") : "";
 
   return {
-    accountId: pickByLabels(trimmed, [
-      "小红书号",
-      "抖音号",
-      "快手号",
-      "B站UID",
-      "UID",
-      "账号ID",
-      "用户ID",
-      "ID",
-    ]),
+    accountId: pickAccountId(trimmed),
     accountName:
       pickByLabels(trimmed, [
         "账号名称",
@@ -393,6 +384,56 @@ function parseAccountText(text: string) {
     recentPosts,
     targetUsers: inferTargetUsers(trimmed),
   };
+}
+
+function pickAccountId(text: string) {
+  return (
+    pickByLabels(text, [
+      "小红书号",
+      "小红书ID",
+      "小红书 ID",
+      "小红书账号ID",
+      "小红书账号",
+      "抖音号",
+      "抖音ID",
+      "抖音 ID",
+      "抖音账号ID",
+      "抖音账号",
+      "快手号",
+      "快手ID",
+      "快手 ID",
+      "快手账号ID",
+      "快手账号",
+      "视频号ID",
+      "视频号 ID",
+      "视频号",
+      "B站UID",
+      "B站 UID",
+      "B站ID",
+      "B站 ID",
+      "哔哩哔哩UID",
+      "哔哩哔哩 UID",
+      "公众号ID",
+      "公众号 ID",
+      "公众号原始ID",
+      "微信号",
+      "平台号",
+      "账号ID",
+      "用户ID",
+      "UID",
+      "ID",
+    ]) || extractLooseAccountId(text)
+  );
+}
+
+function extractLooseAccountId(text: string) {
+  const match = text.match(
+    /(?:小红书号|小红书\s*ID|抖音号|抖音\s*ID|快手号|快手\s*ID|视频号\s*ID|B站\s*UID|B站\s*ID|UID|账号\s*ID|用户\s*ID|平台号|ID)\s*[:：=]?\s*([A-Za-z0-9._-]{2,})/i,
+  );
+  if (match?.[1]) return match[1].trim();
+
+  const atMatch = text.match(/@([A-Za-z0-9._-]{3,})/);
+  return atMatch?.[1] ?? "";
 }
 
 function parseRecentPosts(text: string): ParsedRecentPost[] {
