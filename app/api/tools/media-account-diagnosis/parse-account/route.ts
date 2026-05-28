@@ -324,23 +324,31 @@ function extractPublicPageSnapshot(html: string): PublicPageSnapshot {
 function buildPageExtraction(snapshot: PublicPageSnapshot, result: AccountParserResult) {
   const parsedFromPage = parseAccountInput([snapshot.title, snapshot.description, snapshot.text].join("\n"));
   const pageTitle = cleanupPageTitle(snapshot.title);
+  const accountName = normalizePageAccountName(pageTitle, result);
+  const bio = normalizePageBio(parsedFromPage.bio || snapshot.description, result);
+  const recentPosts =
+    parsedFromPage.recentPosts.length && !isGenericPlatformTitle(pageTitle, result)
+      ? parsedFromPage.recentPosts
+      : result.linkType === "content" && pageTitle && !isGenericPlatformTitle(pageTitle, result)
+        ? [{ title: pageTitle }]
+        : [];
+  const warnings =
+    !accountName && !bio && !parsedFromPage.followers && !parsedFromPage.avgViews && !recentPosts.length
+      ? ["公开主页只返回了平台壳页面，无法读取账号详情。请补充主页链接、账号简介、粉丝数或近期内容。"]
+      : [];
 
   return {
-    accountName: result.linkType === "profile" ? pageTitle : "",
+    accountName: result.linkType === "profile" ? accountName : "",
     avgViews: parsedFromPage.avgViews,
-    bio: parsedFromPage.bio || snapshot.description,
+    bio,
     contentStyle: parsedFromPage.contentStyle,
     followers: parsedFromPage.followers,
     inferredField: parsedFromPage.inferredField,
     pageDescription: snapshot.description,
     pageTitle: snapshot.title,
-    recentPosts:
-      parsedFromPage.recentPosts.length
-        ? parsedFromPage.recentPosts
-        : result.linkType === "content" && pageTitle
-          ? [{ title: pageTitle }]
-          : [],
+    recentPosts,
     targetUsers: parsedFromPage.targetUsers,
+    warnings,
   };
 }
 
@@ -359,6 +367,32 @@ function cleanupPageTitle(value: string) {
   return value
     .replace(/\s*[-_|｜]\s*(小红书|抖音|快手|哔哩哔哩|bilibili|微博|微信公众平台|微信).*$/i, "")
     .trim();
+}
+
+function normalizePageAccountName(value: string, result: AccountParserResult) {
+  if (!value || isGenericPlatformTitle(value, result)) return "";
+  if (/^(登录|注册|首页|发现|推荐)$/.test(value)) return "";
+  return value.slice(0, 80);
+}
+
+function normalizePageBio(value: string, result: AccountParserResult) {
+  const text = value.trim();
+  if (!text || isGenericPlatformTitle(text, result)) return "";
+  if (/^账号\s*ID\s*[:：]/i.test(text)) return "";
+  if (result.accountId && text === result.accountId) return "";
+  if (/^(登录|注册|下载|打开 App|扫码登录)/i.test(text)) return "";
+  return text.slice(0, 300);
+}
+
+function isGenericPlatformTitle(value: string, result: AccountParserResult) {
+  const text = value.trim().toLowerCase();
+  const label = result.platformLabel.trim().toLowerCase();
+  return Boolean(
+    !text ||
+      text === label ||
+      text === result.platform ||
+      /^(小红书|抖音|快手|微博|微信|视频号|公众号|bilibili|哔哩哔哩|b站)$/.test(text),
+  );
 }
 
 function readTag(html: string, tag: string) {

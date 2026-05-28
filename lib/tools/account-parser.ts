@@ -183,12 +183,14 @@ export function mergeAccountParserResult(
   const ai = isRecord(aiValue) ? aiValue : {};
   const aiPosts = normalizeRecentPosts(ai.recentPosts);
   const aiLinkType = toLinkType(readString(ai.linkType));
+  const aiAccountId = readString(ai.accountId) || base.accountId;
+  const aiBio = normalizeExtractedBio(readString(ai.bio), aiAccountId);
   const next: AccountParserResult = {
     ...base,
-    accountId: readString(ai.accountId) || base.accountId,
+    accountId: aiAccountId,
     accountName: readString(ai.accountName) || base.accountName,
     avgViews: readString(ai.avgViews) || base.avgViews,
-    bio: readString(ai.bio) || base.bio,
+    bio: aiBio || base.bio,
     contentStyle: readString(ai.contentStyle) || base.contentStyle,
     followers: readString(ai.followers) || base.followers,
     inferredField: readString(ai.inferredField) || base.inferredField,
@@ -223,7 +225,7 @@ export function mergeAccountParserResult(
     next.recentPosts.length !== base.recentPosts.length;
 
   next.confidence = Math.min(1, Number((base.confidence + (hasMoreData ? 0.12 : 0)).toFixed(2)));
-  next.warnings = getWarningsForResult(next);
+  next.warnings = dedupeStrings([...getWarningsForResult(next), ...readStringArray(ai.warnings)]);
   return next;
 }
 
@@ -235,6 +237,15 @@ function toLinkType(value: string): AccountLinkType | "" {
   return value === "profile" || value === "content" || value === "short" || value === "webpage" || value === "unknown"
     ? value
     : "";
+}
+
+function normalizeExtractedBio(value: string, accountId = "") {
+  const text = value.trim();
+  if (!text) return "";
+  if (/^账号\s*ID\s*[:：]/i.test(text)) return "";
+  if (/^平台账号\s*ID\s*[:：]/i.test(text)) return "";
+  if (accountId && text === accountId) return "";
+  return text;
 }
 
 export function buildAccountProfileUrlCandidates(input: AccountProfileUrlCandidateInput) {
